@@ -36,6 +36,34 @@ Even low level documents can be made fun and readable, if we combine the instruc
 
 ![Encoding](http://i.stack.imgur.com/tWy4q.png)
 
+```latex
+\begin{instruction}{85. LDR (register)}%
+%
+    \addpart[bits=5,register] {Rd};%    
+    \addpart[bits=5,register] {Rn};%
+    \addpart[bits=2] {0, 1};%
+    \addpart[bits=1,opcode] {S};%
+    \addpart[name=opc1,opcode,bits=3,name overlay=red!30] {option};%
+    \addpart[bits=5,register] {Rm};%
+    \addpart[bits=9] {1, 1, 0, 0, 0, 0, 1, 1, 1};%
+    \addpart[name=size,bits=2,name overlay=orange!50] {x,1};%   
+    %
+    \newvariant[32-bit, node={size}, equals]{10};%
+    %
+    \newmnemonics[operand={<Wt>}, comma, open bracket, optional={<Xn|SP>}, comma, optional={<R>}, optional={<m>},
+       open curly, variant={<extend>}, open curly, comma, inner variant={<amount>}, 
+       close curly, close curly, close bracket]{LDR};
+    %
+    \newvariant[64-bit, node={size}, equals]{11};%
+    %
+    \newmnemonics[operand={<Xt>}, comma, open bracket, optional={<Xn|SP>}, comma, optional={<R>}, optional={<m>},
+       open curly, variant={<extend>}, open curly, comma, inner variant={<amount>}, 
+       close curly, close curly, close bracket]{LDR};
+    %
+%
+\end{instruction}%
+```
+
 ### Easily consumed
 ARMlet allows you to store all the object representations of instructions, pseudocode, tables etc. either in default JSON representation, or you can send them to a Redis data-structure server. 
 
