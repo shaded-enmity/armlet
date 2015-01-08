@@ -34,6 +34,8 @@ If you need to disassemble a lot of ARM instructions and performance/efficiency 
 ### Amazing documentation
 Even low level documents can be made fun and readable, if we combine the instruction encoding information with the collected semantics of the target architecture we can then easily compile appealingly looking documents with the help of PGF/Tikz, TeXLive, and the included _instruction.sty_ module.
 
+![Encoding](http://i.stack.imgur.com/tWy4q.png)
+
 ### Easily consumed
 ARMlet allows you to store all the object representations of instructions, pseudocode, tables etc. either in default JSON representation, or you can send them to a Redis data-structure server. 
 
