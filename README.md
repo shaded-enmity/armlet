@@ -67,6 +67,41 @@ Even low level documents can be made fun and readable, if we combine the instruc
 ### Easily consumed
 ARMlet allows you to store all the object representations of instructions, pseudocode, tables etc. either in default JSON representation, or you can send them to a Redis data-structure server. 
 
+### Example run
+
+```
+shaded-enmity$ ./cli.py -f data/aarch_combined
+/********************************************************************************
+ ** 
+                 __    __.__ __.__
+   _._ _._ __.__|  |  |   __|_   _|
+  | .'|  _|     |  |__|   __| | |  
+  |__,|_| |_|_|_|_____|_____| |_|  
+      
+ ** ============> armLET CLI <================================================ ** 
+ **     2013 - 2015(C) [GNU/GPL 2.0]                                           **
+ **            by Pavel Odvody                                                 **
+ **                                                                            **
+ *******************************************************************************/
+
+[!] cwd "/armlet"
+[+] processing filename: data/aarch_combined
+    [$] successfully loaded (104997) lines
+    [v] ==========================================================================
+    [>] aarch32::ARM32Processor 
+        [!] 291/291	instructions	[0, 12, 1.000000]
+    [>] aarch32_system::ARM32SystemProcessor 
+        [!] 22/22	instructions	[0, 2, 1.000000]
+    [>] aarch32_simd::ARM32SIMDProcessor 
+        [!] 172/172	instructions	[0, 4, 1.000000]
+    [>] aarch64::ARM64Processor 
+        [!] 224/224	instructions	[0, 0, 1.000000]
+    [>] aarch64_simd::ARM64SIMDProcessor 
+        [!] 350/350	instructions	[0, 0, 1.000000]
+    [v] ==========================================================================
+[-] finished running in (9.675208 seconds)
+```
+
 ## Installing
 
 If you're lazy you can use the Dockerfile. Otherwise follow these steps on any recent installation of Fedora 21:
