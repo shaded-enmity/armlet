@@ -1,0 +1,57 @@
+\documentclass{article}%
+\usepackage{tikz}%
+%
+\usetikzlibrary{chains,backgrounds,calc}%
+\begin{document}%
+\newcounter{linez}
+\pgfkeys{%
+	/pseudocode/.cd,%
+	%
+	insert anchor/.code={\addtocounter{linez}{1} \node[on chain=codelines, name=code-anchor, minimum size=0]{};\node[on chain=codechars, right=of code-anchor,fill=gray!30] {\texttt\thelinez};},%
+	%
+	insert pod/.code={\node[on chain=codechars, rounded corners=1mm, color=cyan!80]{\texttt{#1}};},%
+	insert token/.code={\node[on chain=codechars, rounded corners=1mm, fill=red!8]{\texttt{#1}};},%
+	insert const/.code={\node[on chain=codechars, rounded corners=1mm, color=red!80]{\texttt{#1}};},%
+	insert control/.code={\node[on chain=codechars, rounded corners=1mm, color=green!30!black]{\texttt{#1}};},%
+	insert condensed/.code={\node[on chain=codechars, rounded corners=1mm, xshift=-0.15cm]{\texttt{#1}};},%
+	%
+	boolean/.style={insert pod={boolean}}, integer/.style={insert pod={integer}},%
+	%
+	var/.code={\node[on chain=codechars, rounded corners=1mm, color=orange!25!black, fill=black!10]{\texttt{#1}};},%
+	operand/.code={\node[on chain=codechars, rounded corners=1mm, fill=orange!28]{\texttt{#1}};},%
+	quoted/.code={\node[on chain=codechars, rounded corners=1mm, fill=black!15]{\texttt{'#1'}};},%
+	typed/.code={\node[on chain=codechars, rounded corners=1mm, color=black!30!red]{\texttt{#1}};},%
+	bit var/.code args={#1 of #2}{\node[on chain=codechars, rounded corners=1mm, fill=orange!28]{\texttt{#2<#1>}};},%
+	comment/.code={\node[on chain=codechars, rounded corners=1mm, fill=black!2]{\texttt{// #1}};},%
+	immediate/.code={\node[on chain=codechars, rounded corners=1mm, fill=blue!20]{\texttt{#1}};},%
+	uint cast/.code={\node[on chain=codechars, rounded corners=1mm, fill=green!10]{\texttt{UInt(#1)}};},%
+	%call/.code={\node[on chain=codechars, rounded corners=1mm, fill=black!10]{\texttt{#1(}};},%
+	begin call/.code={\node[on chain=codechars, rounded corners=1mm, color=black!90, fill=black!17]{\texttt{#1(}};},%
+	end call/.code={\node[on chain=codechars, rounded corners=1mm, color=black!90, fill=black!17, xshift=-0.1cm]{\texttt{)}};},%
+	first arg/.code={\node[on chain=codechars, rounded corners=1mm, fill=orange!28, xshift=-0.1cm]{\texttt{#1}};},%
+	another arg/.code={\node[on chain=codechars, rounded corners=1mm, fill=orange!28, xshift=-0.1cm]{\texttt{, #1}};},%
+	%
+	assign/.style={insert token={=}}, false token/.style={insert const={FALSE}}, if token/.style={insert control={if}},%
+	then token/.style={insert control={then}}, else token/.style={insert control={else}},  semicolon token/.style={insert condensed={;}},%
+	equals/.style={insert token={==}},%
+	%
+	bad encoding/.code={\node[on chain=codechars, rounded corners=1mm, fill=magenta!25]{\texttt{UnallocatedEncoding()}};},%
+	finish line/.style={insert anchor},%
+	end line/.style={semicolon token, finish line}%%
+}%
+
+\begin{tikzpicture}%
+	\newcommand*{\newmnemonics}[1][]{\appendcode[#1]};%
+	\def\appendcode[#1]#2;{%
+		\begin{scope}[start chain=codechars going right, start chain=codelines going below, every node/.style={minimum height=0.5cm,node distance=0.25cm and 0.0}]%
+			\pgfkeys{/pseudocode/.cd, insert anchor, #1}%
+		\end{scope}%
+	}%
+	\newmnemonics[boolean, var={wback}, assign, false token, end line,
+		boolean, var={postindex}, assign, false token, end line, 
+		integer, var={scale}, assign, begin call={UInt}, first arg={size}, end call, end line, 
+		if token, bit var=1 of option, equals, quoted={0}, then token, bad encoding, semicolon token, comment={sub-word index}, finish line, 
+		typed={ExtendType}, var={extend\_type}, assign, begin call={DecodeRegExtend}, first arg={option}, end call, end line, 
+		integer, var={shift}, assign, if token, operand={S}, equals, quoted={1}, then token, var={scale}, else token, immediate={0}, semicolon token]{};
+\end{tikzpicture}%
+\end{document}
