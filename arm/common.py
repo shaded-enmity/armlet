@@ -210,12 +210,14 @@ class ClassList(object):
     def getItems(self):
         return self.items
 
+OperandType = utils.Enum(INVALID=0, REGISTER=1, IMMEDIATE=2, OPERAND=3, CONDITION=4, BITS=5)
 
 class BitOperand(object):
-    def __init__(self, name, start, length):
+    def __init__(self, name, start, length, t=None):
         self.name = name
         self.start = start
         self.length = length
+        self.type = t or OperandType.INVALID
 
     def __repr__(self):
         return '<%s> (%i)' % (self.name, self.length)
@@ -228,6 +230,7 @@ class EncodingVariant(utils.Test):
         self.support = []
         self.detail = []
         self.bits = []
+        self.decode = []
 
     def getName(self):
         if self.isa in [Variant.AArch32_THUMB, Variant.AArch32_THUMB16]:
@@ -245,6 +248,9 @@ class EncodingVariant(utils.Test):
     def addOperand(self, op):
         self.bits.append(op)
 
+    def addDecode(self, decode):
+        self.decode.append(decode)
+
     def validate(self, context=None):
         if self.getCoverage() != self.getBitSize():
             return False
@@ -257,6 +263,29 @@ class EncodingVariant(utils.Test):
         if self.getCoverage() != self.getBitSize():
             utils.Log(' --- insn %s components [%s]', (self.getName(),
               ', '.join([str(x) for x in self.bits])), self)
+
+class Constraint(object):
+    EMPTY=None
+    def __init__(self, value=''):
+        self.string = value
+
+    def solve(self, context=None):
+        return context
+Constraint.EMPTY = Constraint()
+
+class MnemonicsVariant(object):
+    def __init__(self, name='', constraint=None, mnemonics=None):
+        self.name = name
+        self.constraint = constraint or Constraint.EMPTY
+        self.mnemonics = mnemonics or []
+
+    def addConstraint(self, fromstr):
+        if self.constraint != Constraint.EMPTY:
+            utils.Log(' -- multiple constraint for %s (old: %s) (new: %s)', (self.name, str(self.constraint), fromstr))
+        self.constraint = Constraint(fromstr)
+
+    def addMnemonics(self, mnemonics):
+        self.mnemonics.append(mnemonics)
 
 class LengthVariant(object):
         def __init__(self, nid, nisa, variants):
@@ -732,6 +761,10 @@ class Engine(object):
                                 self.instructions.append(proxy)
                                 num_proxies += 1
                 last_num = number
+
+        if self.insn.validate():
+            self.instructions.append(self.insn)
+            self.num_map[utils.Int(self.insn.num_id)] = self.insn
 
         utils.Log('', (), self, utils.LogCat.Debug)
 	with utils.Indentation(1):

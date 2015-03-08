@@ -31,6 +31,7 @@ LogCatPrefixes = ['!', '$', '+', '-', 'v', '@', '>']
 Separators = {'-': '<>', '_': '[]', '=': '{}', '+': '()', '^': '\'\''}
 BitPairs = ['.-', '01', 'oX']
 WhiteSpacePattern = re.compile(r'\s+')
+LeadingWhitespace = re.compile(r'^\s+')
 
 def StringList(fromlist):
     return [str(f) for f in fromlist]

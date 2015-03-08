@@ -20,12 +20,12 @@
 
 import sys
 
-from arm import common
+from arm import common, latex_serializer
 from lib import utils
 
 from aarch32 import ARM32Processor
-from aarch32_system import ARM32SystemProcessor
-from aarch32_simd import ARM32SIMDProcessor
+#from aarch32_system import ARM32SystemProcessor
+#from aarch32_simd import ARM32SIMDProcessor
 
 from aarch64 import ARM64Processor
 from aarch64_simd import ARM64SIMDProcessor
@@ -59,13 +59,16 @@ def main(argv):
                 pump = common.DataPump(filenames[0])
 
                 if pump.loadRawData():
-		    pump.registerEngines(ARM32Processor(), ARM32SystemProcessor(), 
-			ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())
+		    '''pump.registerEngines(ARM32Processor(), ARM32SystemProcessor(), 
+			ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())'''
+                    pump.registerEngines(ARM32Processor())
                     common.InitializeDecoder()
 
                     pump.execute(profiler)
         utils.Log('finished running in (%f seconds)', (profiler.getRuntime()),
                    manifest['space'], utils.LogCat.Leaf)
+
+        print latex_serializer.serialize(pump.engines.ordered[0].instructions[0].serialize())
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
