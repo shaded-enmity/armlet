@@ -18,23 +18,65 @@
 # Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-import sys, json
+import sys, json, re
 
 from arm import common
 from lib import utils
+
+def tokenize(mnem):
+    name = re.match('^\w+',  mnem).group(0)
+    mnem = mnem[len(name):]
+    code = '\\newmnemonics['
+    for m in re.compile(r'{(.*?)}').finditer(mnem):
+        innercomma = m.group(1).find(',')
+        span = m.span()
+        val = m.group(1).replace(',', '')
+        code += 'open curly, operand={' + val + '}, '
+        if innercomma != -1:
+            code += 'comma, '
+        code += 'close curly, '
+        mnem = mnem[:span[0]] + ' '*(span[1]-span[0]) + mnem[span[1]:]
+    mnem = mnem.strip()
+    for m in re.compile(r'#?<.*?>,?').finditer(mnem):
+        innercomma = m.group(0).find(',')
+        span = m.span()
+        cpref = m.group(0).startswith('#')
+        val = m.group(0).replace(',', '').replace('#', '\\#')
+        code += 'operand={' + val + '}, '
+        if innercomma != -1:
+            code += 'comma, '
+        mnem = mnem[:span[0]] + ' '*(span[1]-span[0]) + mnem[span[1]:]
+    code = code[:-2]
+    code += ']{%s};%%' % name
+    return code
 
 def serialize(insn):
     insn, out = json.loads(insn), ''
     for e in insn['encodings']:
         out += '\\begin{instruction}{%s. %s [%s]}%%\n' % (insn['id'], ', '.join(insn['names']), e['name'])
-        for bp in e['bits']:
+        for bp in reversed(e['bits']):
             flags = ''
             if bp['type'] == common.OperandType.REGISTER:
                 flags = ', register'
             elif bp['type'] == common.OperandType.IMMEDIATE:
-                flags = ', opcode'
+                flags = ', opcode, color=cyan!60!'
             elif bp['type'] == common.OperandType.CONDITION:
-                flags = ', opcode'
+                flags = ', opcode, color=green'
+            elif bp['type'] == common.OperandType.BITS:
+                bp['name'] = ', '.join(bp['name'].split(' '))
+            elif bp['type'] == common.OperandType.OPERAND:
+                if len(bp['name']) == 1:
+                    flags = ', opcode, color=red, name={%s}' % bp['name']
+                elif len(bp['name']) == 2:
+                    flags = ', opcode, color=orange'
             out += ' \\addpart[bits=%d%s] {%s};%%\n' % (bp['size'], flags, bp['name'])
+        for mv in e['mnemonics']:
+            cn, cc = '', ''
+            if mv['constraint']:
+                cn, cc = mv['constraint'].strip().strip('.').split('=', 1)
+                cc = '=' + cc
+            out += '\\newvariant{%s}{%s}{%s};%%\n' % (mv['name'], cn.strip(), cc)
+            out += tokenize(mv['mnemonics'][0]) + '\n'
+
         out += '\\end{instruction}%\n\n'
     return out

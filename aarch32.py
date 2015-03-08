@@ -45,6 +45,12 @@ class ARM32Instruction(common.Instruction):
     def addMnemonics(self, mnem):
         self._getmnemonics()[-1].addMnemonics(mnem)
 
+    def addMnemonicAlias(self, target):
+        self._getmnemonics()[-1].mnemonics[-1].addAlias(target)
+
+    def addMnemonicAliasConstraint(self, constr):
+        self._getmnemonics()[-1].mnemonics[-1].setConstraint(constr)
+
     def addDecode(self, decode):
         self.getEncoding().addDecode(decode)
 
@@ -115,7 +121,7 @@ class ARM32JSONSerializer(object):
         names = [n.replace(',', '').strip() for n in insn.names]
         encodings = []
         for enc in insn.encodings:
-            mnemonics = [{'name': mv.name, 'constraint': mv.constraint.string, 'mnemonics': mv.mnemonics} for mv in enc.mnemonics]
+            mnemonics = [{'name': mv.name, 'constraint': mv.constraint.string, 'mnemonics': [{'value': m.value, 'aliases': [{'target': a.value, 'constraint':a.constraint.string} for a in m.aliases]} for m in mv.mnemonics]} for mv in enc.mnemonics]
             encodings.append({'name': enc.getName(), 'variant': str(enc.isa), 
                 'mnemonics': mnemonics, 'decode': enc.decode, 'bits': [{'name': bc.name, 'size': bc.length, 'type': bc.type} for bc in enc.bits]
                 })
@@ -139,6 +145,7 @@ class ARM32JSONSerializer(object):
             }
         }
 
+        pprint.pprint(jsondict)
         return json.dumps(jsondict)
 
 class ARM32Pager(common.PageCompleter):
@@ -156,7 +163,7 @@ class ARM32Pager(common.PageCompleter):
 class Stage(object):
     (Start, Name, Summary, Bitheader, Operands, Variant, Mnemonics,
      Pseudocode, Aliases, Symbols, Operation, Support, Components, Syntax,
-     Decode) = utils.BinaryRange(15)
+     Decode, Equivalency) = utils.BinaryRange(16)
 
 class ARM32Processor(common.Engine):
     def __init__(self):
@@ -226,6 +233,8 @@ class ARM32Processor(common.Engine):
                 t = common.OperandType.IMMEDIATE
             elif name.startswith('!='):
                 t = common.OperandType.CONDITION
+            elif len(name) < 3:
+                t = common.OperandType.OPERAND
             return common.BitOperand(name, s, l, t)
 
         def _collapse((items, acc, first), value):
@@ -340,16 +349,23 @@ class ARM32Processor(common.Engine):
                 prefix = 'Applies when'
                 if linesr.startswith(prefix):
                     self.insn.addConstraint(linesr[len(prefix):])
+                elif linesr == 'is equivalent to':
+                    self.stage = Stage.Equivalency
                 elif linesr.startswith('Decode for'):
-                    #utils.Log(" -- decode: %s", (line))
                     self.stage = Stage.Decode
                 elif linesr.startswith('Assembler symbols'):
                     self.stage = Stage.Syntax
                 else:
-                    #utils.Log(" -- adding mnemonics: %s", (line))
                     self.insn.addMnemonics(linesr)
             else:
                 self.insn.addMnemonicsVariant(variant)
+
+        elif self.stage == Stage.Equivalency:
+            if linesr.startswith('and is'):
+                self.insn.addMnemonicAliasConstraint(linesr)
+                self.stage = Stage.Mnemonics
+            else:
+                self.insn.addMnemonicAlias(linesr)
 
         elif self.stage == Stage.Decode:
             if linesr.startswith('Notes for'):

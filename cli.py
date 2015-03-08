@@ -68,7 +68,8 @@ def main(argv):
         utils.Log('finished running in (%f seconds)', (profiler.getRuntime()),
                    manifest['space'], utils.LogCat.Leaf)
 
-        print latex_serializer.serialize(pump.engines.ordered[0].instructions[0].serialize())
+        pump.engines.ordered[0].instructions[8].serialize()
+        #print latex_serializer.serialize(pump.engines.ordered[0].instructions[1].serialize())
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))

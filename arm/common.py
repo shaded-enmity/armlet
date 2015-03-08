@@ -265,19 +265,39 @@ class EncodingVariant(utils.Test):
               ', '.join([str(x) for x in self.bits])), self)
 
 class Constraint(object):
-    EMPTY=None
+    EMPTY,NEVER,ALWAYS=None,None,None
     def __init__(self, value=''):
         self.string = value
 
     def solve(self, context=None):
-        return context
+        return True
+
 Constraint.EMPTY = Constraint()
+Constraint.NEVER = Constraint('false')
+Constraint.ALWAYS = Constraint('true')
+
+class ConstrainedAlias(object):
+    def __init__(self, m):
+        self.value = m
+        self.constraint = Constraint.EMPTY
+
+class Mnemonics(object):
+    def __init__(self, m, aliases=None):
+        self.value = m
+        self.aliases = aliases or []
+
+    def addAlias(self, m):
+        self.aliases.append(ConstrainedAlias(m))
+
+    def setConstraint(self, cons):
+        self.aliases[-1].constraint = Constraint(cons)
 
 class MnemonicsVariant(object):
     def __init__(self, name='', constraint=None, mnemonics=None):
         self.name = name
         self.constraint = constraint or Constraint.EMPTY
         self.mnemonics = mnemonics or []
+        self.aliases = []
 
     def addConstraint(self, fromstr):
         if self.constraint != Constraint.EMPTY:
@@ -285,7 +305,7 @@ class MnemonicsVariant(object):
         self.constraint = Constraint(fromstr)
 
     def addMnemonics(self, mnemonics):
-        self.mnemonics.append(mnemonics)
+        self.mnemonics.append(Mnemonics(mnemonics))
 
 class LengthVariant(object):
         def __init__(self, nid, nisa, variants):
