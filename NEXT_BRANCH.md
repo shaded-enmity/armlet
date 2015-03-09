@@ -19,8 +19,8 @@ different format for ARM32 instructions, but there is more:
 
 # ROADMAP
 
-[O] Implement multi-page instruction parsing for once
-[ ] Investigate where did the SYSTEM INSTRUCTIONS go
+[X] Implement multi-page instruction parsing for once
+[X] Investigate where did the SYSTEM INSTRUCTIONS go
 [X] Update the BIT COMPONENT parser to properly handle the '!= 1111' case
 [X] Change BIT HEADER parsing semantics
  [X] Parse the gap information from BIT HEADERS and defer lengths of operands
@@ -34,5 +34,5 @@ different format for ARM32 instructions, but there is more:
  [ ] C (EXPORT)
  [ ] Python (EXPORT)
  [ ] HTML (EXPORT)
-[O] Parse assembly variants and link them with BIT COMPONENTS as needed
+[X] Parse assembly variants and link them with BIT COMPONENTS as needed
 [X] Collect all PSEUDOCODE information

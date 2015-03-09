@@ -1,7 +1,7 @@
 from lib import utils
-from aarch32 import ARM32Data, ARM32Processor
+from arm import common
 
-class ARM64SIMDData(ARM32Data): 
+class ARM64SIMDData(common.DataStrings): 
     MnemonicsMatcher = utils.RegexMatcher('C7\.3\.(\d*)\s*([A-Z1-9]{1,8})\s*(.*)')
     EncodingMatcher = utils.RegexMatcher('^(Scalar|Vector|Nooffset|Pre-index|Post-index|Unsignedoffset|Signedoffset)()$')
 
@@ -31,7 +31,7 @@ class ARM64SIMDData(ARM32Data):
         return operand in TWOBITS
 
 
-class ARM64SIMDProcessor(ARM32Processor):
+class ARM64SIMDProcessor(common.Engine):
     def getArchVariant(self):
         return self.ARM64SIMD
 

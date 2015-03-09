@@ -19,14 +19,10 @@
 #
 
 from lib import utils
-
-ManualBadLines = ['If<Rd>isthePC,mustbeoutsideorlastinITblock.']
+import string, pprint, json
 
 PageType = utils.Enum(Invalid=0, AArch32=1, SIMD32=2, AArch64=4, SIMD64=8,
                         Complementary=16, GPRTable=32)
-
-ProxyTransform = utils.Enum(Invalid=0, ImmediateBitwiseInv=1,
-                              OperandsReversed=2, InstructionLink=3)
 
 class CoreVersion(object):
     (INVALID, PRE_V4, V4, V4T, V5T, V5TE, V5TEJ, V6, V6K, V6Z, V6T2, V7A,
@@ -156,62 +152,7 @@ class Variant(object):
 def IsVariant(a, b):
     return (a & b) != 0
 
-
-class EncodingClass(object):
-    LastID, TypeToId = 0, {}
-
-    def __init__(self, name, patterns=None):
-        self.id = EncodingClass.LastID
-        self.variant_type = Variant.Invalid
-        self.name = name
-        self.patterns = patterns or []
-        self.cached_match = None
-        EncodingClass.LastID += 1
-
-    def getName(self):
-        return self.name
-
-    def getId(self):
-        return self.id
-
-    def getVariantType(self):
-        return self.variant_type
-
-    def mapToVariant(self, variant_type):
-        if variant_type not in EncodingClass.TypeToId:
-            EncodingClass.TypeToId[variant_type] = self.getId()
-            return True
-        return False
-
-    def matchString(self, line):
-        self.cached_match = [x for x in self.patterns if x.match(line)]
-        return self.cached_match
-
-    def extractArguments(self):
-        if self.cached_match:
-            arguments = []
-            for m in self.cached_match:
-                utils.Merge(arguments, m.getMatched())
-            return arguments
-        return None
-
-
-class ClassList(object):
-    def __init__(self):
-        self.items = []
-
-    def append(self, classes):
-        for (k, c) in classes.items():
-            if k != 'default':
-		""" Skip the default class """
-                utils.Merge(self.items, c)
-        return self.items
-
-    def getItems(self):
-        return self.items
-
 OperandType = utils.Enum(INVALID=0, REGISTER=1, IMMEDIATE=2, OPERAND=3, CONDITION=4, BITS=5)
-
 class BitOperand(object):
     def __init__(self, name, start, length, t=None):
         self.name = name
@@ -310,31 +251,13 @@ class MnemonicsVariant(object):
     def addMnemonics(self, mnemonics):
         self.mnemonics.append(Mnemonics(mnemonics))
 
-class LengthVariant(object):
-        def __init__(self, nid, nisa, variants):
-                self.nid = nid
-                self.isa = nisa
-                self.variants = variants
-        
-        def match(self, nid, enc):
-            return self.nid == nid and enc.getName() in self.isa
-
-        def getVariants(self, nid, encoding):
-            if not self.match(nid, encoding):
-                return None
-            return self.variants
-
-class FieldVariant(utils.Test):
-    def __init__(self, ttype, fields=None):
-        self.type = ttype
-        self.fields = fields or {}
-
 class Instruction(utils.Test):
     def __init__(self):
         self.num_id = 0
         self.names = []
         self.summary = []
-        self.metadata = {"Syntax": [], "Operation": []}
+	self.metadata = {"Syntax": [], "Operation": [], "Decode": []}
+	self.encodings = []
 
     def setHeader(self, num, *names):
         self.num_id = num
@@ -356,248 +279,163 @@ class Instruction(utils.Test):
     def addSummary(self, line):
         self.summary.append(line)
 
-class ProxyTarget(object):
-    def __init__(self, engine, num):
-        self.target_arch = engine
-        self.instruction_num = num
+    def getEncoding(self, isa=None, num=None):
+        if isa == None and num == None:
+            return self.encodings[-1]
+        return [x for x in self.encodings\
+                 if x.isa == isa and x.num == num][0] or None
 
-    def getTarget(self, factory):
-        return factory.fromVariant(self.target_arch).num_map[self.instruction_num]
+    def setEncodingIsa(self, isa):
+        enc = self.getEncoding()
+        enc.isa = isa
+        return self
 
-class InstructionProxy(Instruction):
-    def __init__(self, ttype, target):
-        super(InstructionProxy, self).__init__()
-        self.type = ttype
-        self.target = target
+    def setEncodingBits(self, bits):
+        enc = self.getEncoding()
+        enc.bits = bits
+        return self
 
-    def proxy(self):
-        utils.Log('proxying (%i)', (self.target.instruction_num), self)
-        pass
+    def addEncoding(self, archnum, support=None, isa=Variant.Invalid):
+        a = utils.Int(archnum)
+        if a != None:
+            variant = EncodingVariant(isa, a)
+        else:
+            variant = EncodingVariant(isa, 1, support)
+        variant.support.append(support)
+        self.encodings.append(variant)
+        return variant
 
-class BitComponent(object):
-    def __init__(self, name, size):
-        self.name = name
-        self.size = size
+    def _getmnemonics(self):
+        return self.getEncoding().mnemonics
 
-    def __repr__(self):
-        return '"%s": %i' % (self.name, self.size)
+    def addMnemonicsVariant(self, name):
+        self._getmnemonics().append(MnemonicsVariant(name))
 
-class BitComponentList(utils.Test):
-    def __init__(self, size=32):
-        self.size = size
-        self.components = []
+    def addConstraint(self, constr):
+        self._getmnemonics()[-1].addConstraint(constr)
 
-    def addComponent(self, bit_component):
-        self.components.append(bit_component)
+    def addMnemonics(self, mnem):
+        self._getmnemonics()[-1].addMnemonics(mnem)
 
-    def createComponent(self, name, size):
-        self.addComponent(BitComponent(name, size))
+    def addMnemonicAlias(self, target):
+        self._getmnemonics()[-1].mnemonics[-1].addAlias(target)
 
-    def getCoverage(self):
-        return reduce(utils.Add, [c.size for c in self.components], 0)
+    def addMnemonicAliasConstraint(self, constr):
+        self._getmnemonics()[-1].mnemonics[-1].setConstraint(constr)
+
+    def addDecode(self, decode):
+        self.getEncoding().addDecode(decode)
+
+    def addEncodingSupport(self, support):
+        if not isinstance(support, list):
+            self.getEncoding().support.append(support)
+        else:
+            for m in support:
+                self.getEncoding().support.append(m)
+        return self
+
+    def serialize(self):
+        """
+        print 'NUM:', self.num_id
+        print 'NMS:', self.names
+        print 'SUM:', self.summary
+        print ''
+
+        for encoding in self.encodings:
+            print encoding.getName()
+            print '', str(encoding.isa)
+            print '', encoding.bits
+            print ''
+            for mv in encoding.mnemonics:
+                print ' *', mv.name, mv.constraint.string
+                print ' ' + '\n  *'.join(mv.mnemonics)
+            print ''
+            print ' Variant decode:'
+            print '  ' + '\n  '.join(encoding.decode) 
+            print ''   
+
+        print ''
+        print ' OPERATION: '
+        # the pseudocode uses indentation just like Python for scoping
+        # so make sure that we remove only the common leading whitespace
+        remove = min([len(utils.LeadingWhitespace.match(x).group(0)) for x in self.metadata['Operation']])
+        print ' ' + ' '.join([x[remove:] for x in self.metadata['Operation']])
+        print ''
+        print ' SYMBOLS: '
+        remove = min([len(utils.LeadingWhitespace.match(x).group(0)) for x in self.metadata['Syntax']])
+        print ' ' + ' '.join([x[remove:] for x in self.metadata['Syntax']])
+        print ''
+        """
+        return JSONSerializer().serialize_instruction(self)
 
     def validate(self, context=None):
-        return self.size == self.getCoverage()
+        if self.num_id != 0:
+            failed = False
+            for enc in self.encodings:
+                if not enc.validate():
+                    failed = True
+                    enc.report()
+            if failed:
+                utils.Log('--- validating "%s (%s)" (%i) encodings',
+                        ((self.names[0] if len(self.names) else 'UNKNOWN'),
+                         self.num_id, len(self.encodings)), self)
 
-
-class VariantDecoder(object):
-    def __init__(self):
-        self.encoding_map = {0: self.createDecode()}
-        self.last_decode = self.encoding_map[0]
-
-    def getLastDecode(self):
-        return self.last_decode
-
-    def createDecode(self, args=None):
-        return None
-
-    def getClassList(self):
-        return []
-
-    def getDecodes(self):
-        return self.encoding_map.items()
-
-    def decodeLine(self, line):
-        classes = [cls for cls in self.getClassList() if cls.matchString(line)]
-        if utils.Unary(classes):
-            encoding_class = classes[0]
-            arguments = encoding_class.extractArguments()
-            if self.addVariant(encoding_class, self.createDecode(arguments)):
-                return encoding_class
-        return None
-
-    def addVariant(self, encoding_class, vobj):
-        uid = encoding_class.getId()
-        if uid not in self.encoding_map:
-            self.encoding_map[uid] = vobj
-            self.last_decode = vobj
+                #ARM32JSONSerializer().serialize_instruction(self)
+                utils.Log('*** FAILED !!! ', (), self)
+                return False
             return True
         return False
 
-    def getDefault(self):
-        return self.getVariantById(0)
+class JSONSerializer(object):
+    def __init__(self):
+        self.data = ''
 
-    def getVariantById(self, variant_id):
-        return None if variant_id not in self.encoding_map\
-            else self.encoding_map[variant_id]
-
-    def getVariantByType(self, variant_type):
-        variant_id = None if variant_type not in EncodingClass.TypeToId \
-			else EncodingClass.TypeToId[variant_type]
-        return self.getVariantById(variant_id)
-
-
-class EncodingPropertyDecoder(VariantDecoder):
-    class _Container(object):
-        def __init__(self, condition=None):
-            self.mnemonics = []
-            self.condition = condition
-
-        def createMnemonicVariant(self, mnem):
-            self.mnemonics.append(mnem)
-
-    def createDecode(self, args=None):
-        return EncodingPropertyDecoder._Container(args)
-
-    def getClassList(self):
-        return VariantEncodings.getItems()
-
-
-class EncodingClassDecoder(VariantDecoder):
-    class _Container(object):
-        def __init__(self):
-            self.bit_components = BitComponentList()
-            self.variant_components = EncodingPropertyDecoder()
-            self.operands = []
-            self.metadata = {}
-
-        def getLastComponent(self):
-            return self.bit_components.components[-1]
-
-        def addOperands(self, op):
-            self.operands.append(op)
-
-        def createComponent(self, name, size):
-            self.bit_components.createComponent(name, size)
-
-    def createDecode(self, args=None):
-        return EncodingClassDecoder._Container()
-
-    def getClassList(self):
-        return ClassEncodings.getItems()
+    def serialize_instruction(self, insn):
+        " :type insn: Instruction "
+        names = [n.replace(',', '').strip() for n in insn.names]
+        encodings = []
+        for enc in insn.encodings:
+            mnemonics = [{'name': mv.name, 'constraint': mv.constraint.string, 'mnemonics': [{'value': m.value, 'aliases': [{'target': a.value, 'constraint':a.constraint.string} for a in m.aliases]} for m in mv.mnemonics]} for mv in enc.mnemonics]
+            encodings.append({'name': enc.getName(), 'variant': str(enc.isa), 
+                'mnemonics': mnemonics, 'decode': enc.decode, 'bits': [{'name': bc.name, 'size': bc.length, 'type': bc.type} for bc in enc.bits]
+                })
+        if insn.metadata['Operation']:
+	   remove = min([len(utils.LeadingWhitespace.match(x).group(0)) for x in insn.metadata['Operation']])
+           operation = [x[remove:].strip('\n\r') for x in insn.metadata['Operation']]
+	else:
+	   operation = []
+	if insn.metadata['Syntax']:
+	   remove = min([len(utils.LeadingWhitespace.match(x).group(0)) for x in insn.metadata['Syntax']])
+           symbols = [''.join([c for c in x[remove:].strip('\n\r') if c in string.printable]) for x in insn.metadata['Syntax']]
+	else:
+           symbols = []
+	if insn.metadata['Decode']:
+	   remove = min([len(utils.LeadingWhitespace.match(x).group(0)) for x in insn.metadata['Decode']])
+           decode = [''.join([c for c in x[remove:].strip('\n\r') if c in string.printable]) for x in insn.metadata['Decode']]
+	else:
+           decode = []
 
 
-DecoderClasses = dict(default=None, addressing=None, simd=None)
-DecoderProperties = dict(default=None)
-ClassEncodings = ClassList()
-VariantEncodings = ClassList()
+        jsondict = {
+            'id': insn.num_id,
+            'names': names,
+            'summary': {
+              'lines': insn.summary
+            },
+            'encodings': encodings,
+            'operation': {
+              'lines': operation
+            },
+            'symbols': {
+              'lines': symbols
+            },
+	    'decode': {
+	      'lines': decode
+	    }
+        }
 
-def DefaultClassDecoder():
-    return DecoderClasses.get('default')[0]
-
-def DecoderRegexp(class_name):
-    return '^' + class_name + '\s?(?:\((.*)\))?'
-
-def DecoderCreate(class_name, class_type, class_patterns=None):
-    encoding = EncodingClass(class_name)
-
-    if IsVariant(class_type, Variant.BitsInvolved | Variant.HasOffset):
-        encoding.patterns.append(utils.RegexMatcher(DecoderRegexp(class_name), utils.Pipes.TrimWhitespace))
-    elif not class_patterns:
-        encoding.patterns.append(utils.PipedMatcher(class_name, utils.Pipes.TrimWhitespace))
-    else:
-        encoding.patterns = class_patterns
-
-    encoding.mapToVariant(class_type)
-    return encoding
-
-def InitializeDecoder():
-    DecoderClasses['default'] = [DecoderCreate('Default',  Variant.Invalid)]
-
-    DecoderClasses['addressing'] = [DecoderCreate('No offset',  Variant.Offset |  Variant.ZeroOffset),
-                  DecoderCreate('Unsigned offset',  Variant.Offset |  Variant.Unsigned),
-                  DecoderCreate('Signed offset',  Variant.Offset |  Variant.Signed),
-                  DecoderCreate('Pre-index',  Variant.PreIndex),
-                  DecoderCreate('Post-index',  Variant.PostIndex)]
-
-    DecoderClasses['simd'] = [DecoderCreate('Scalar',  Variant.Scalar),
-                 DecoderCreate('Vector',  Variant.Vector)]
-
-    DecoderProperties['default'] = [DecoderCreate('Default',  Variant.Invalid)]
-
-    DecoderProperties['bit_variant'] = [DecoderCreate('8-bit variant',  Variant.Bits8),
-                                  DecoderCreate('16-bit variant', Variant.Bits16),
-                                  DecoderCreate('32-bit variant', Variant.Bits32),
-                                  DecoderCreate('64-bit variant', Variant.Bits64),
-                                  DecoderCreate('128-bit variant', Variant.Bits128)]
-
-    DecoderProperties['offset_variant'] = [DecoderCreate('No offset variant', Variant.ZeroOffset),
-                                  DecoderCreate('Post-index variant', Variant.PostIndex),
-                                  DecoderCreate('Pre-index variant', Variant.PreIndex),
-                                  DecoderCreate('Signed offset variant', Variant.Offset | Variant.Signed),
-                                  DecoderCreate('Unsigned offset variant', Variant.Offset | Variant.Unsigned),
-                                  DecoderCreate('Integer variant', Variant.Signed)]
-
-    DecoderProperties['crc32_variant'] = [DecoderCreate('CRC32B variant', Variant.Bits8 | Variant.CRC32),
-                                  DecoderCreate('CRC32H variant', Variant.Bits16 | Variant.CRC32),
-                                  DecoderCreate('CRC32W variant', Variant.Bits32 | Variant.CRC32),
-                                  DecoderCreate('CRC32X variant', Variant.Bits64 | Variant.CRC32),
-                                  DecoderCreate('CRC32CB variant', Variant.Bits8 | Variant.CRC32),
-                                  DecoderCreate('CRC32CH variant', Variant.Bits16 | Variant.CRC32),
-                                  DecoderCreate('CRC32CW variant', Variant.Bits32 | Variant.CRC32),
-                                  DecoderCreate('CRC32CX variant', Variant.Bits64 | Variant.CRC32)]
-
-    DecoderProperties['relative_variant'] = [DecoderCreate('26-bit signed PC-relative branch offset variant',
-                                          Variant.Offset | Variant.Relative | Variant.Signed),
-                                  DecoderCreate('19-bit signed PC-relative branch offset variant',
-                                          Variant.Offset | Variant.Relative | Variant.Signed),
-                                  DecoderCreate('14-bit signed PC-relative branch offset variant',
-                                          Variant.Offset | Variant.Relative | Variant.Signed)]
-
-    DecoderProperties['common_variant'] = [DecoderCreate('System variant', Variant.System),
-                                            DecoderCreate('Literal variant', Variant.Literal)]
-
-    DecoderProperties['commond_simd'] = [DecoderCreate('Scalar variant', Variant.Scalar | Variant.Simd),
-                                  DecoderCreate('Vector variant', Variant.Vector | Variant.Simd),
-                                  DecoderCreate('Advanced SIMD variant', Variant.Simd),
-                                  DecoderCreate('Single-precision variant', Variant.Single | Variant.Bits32),
-                                  DecoderCreate('Single-precision, zero variant', Variant.Single | Variant.ZeroImmediate | Variant.Bits32),
-                                  DecoderCreate('Double-precision variant', Variant.Double | Variant.Bits64),
-                                  DecoderCreate('Double-precision, zero variant', Variant.Double | Variant.ZeroImmediate | Variant.Bits64)]
-    DecoderProperties['three_reg_simd'] = [DecoderCreate('Three registers of the same type variant',
-                                          Variant.SameRegisters | Variant.Simd | Variant.NumRegs3),
-                                  DecoderCreate('Three registers, not all the same type variant',
-                                          Variant.DiffRegisters | Variant.Simd | Variant.NumRegs3)]
-
-    DecoderProperties['imm_offset_simd'] = [DecoderCreate('8-bit, immediate offset variant',
-                                          Variant.Bits8 | Variant.ImmediateOffset | Variant.Simd),
-                                  DecoderCreate('16-bit, immediate offset variant',
-                                          Variant.Bits16 | Variant.ImmediateOffset | Variant.Simd),
-                                  DecoderCreate('32-bit, immediate offset variant',
-                                          Variant.Bits32 | Variant.ImmediateOffset | Variant.Simd),
-                                  DecoderCreate('64-bit, immediate offset variant',
-                                          Variant.Bits64 | Variant.ImmediateOffset | Variant.Simd),
-                                  DecoderCreate('Immediate offset variant', Variant.ImmediateOffset | Variant.Simd)]
-
-    DecoderProperties['reg_offset_simd'] = [DecoderCreate('8-bit, register offset variant',
-                                          Variant.Bits8 | Variant.RegisterOffset | Variant.Simd),
-                                  DecoderCreate('16-bit, register offset variant',
-                                          Variant.Bits16 | Variant.RegisterOffset | Variant.Simd),
-                                  DecoderCreate('32-bit, register offset variant',
-                                          Variant.Bits32 | Variant.RegisterOffset | Variant.Simd),
-                                  DecoderCreate('64-bit, register offset variant',
-                                          Variant.Bits64 | Variant.RegisterOffset | Variant.Simd),
-                                  DecoderCreate('Register offset variant', Variant.RegisterOffset | Variant.Simd)]
-
-    DecoderProperties['convert_simd'] = [DecoderCreate('32-bit to single-precision variant',
-                                          Variant.BitsToFloating | Variant.Bits32 | Variant.Single),
-                                  DecoderCreate('Single-precision to 32-bit variant', Variant.FloatingToBits | Variant.Bits32 | Variant.Single),
-                                  DecoderCreate('Single-precision to 64-bit variant', Variant.FloatingToBits | Variant.Bits64 | Variant.Single),
-                                  DecoderCreate('Double-precision to 32-bit variant', Variant.FloatingToBits | Variant.Bits32 | Variant.Double),
-                                  DecoderCreate('Double-precision to 64-bit variant', Variant.FloatingToBits | Variant.Bits64 | Variant.Double)]
-
-    ClassEncodings.append(DecoderClasses)
-    VariantEncodings.append(DecoderProperties)
+        #pprint.pprint(jsondict)
+	return json.dumps(jsondict, sort_keys=True, indent=2, separators=(',', ': '))
 
 class ManualPage(object):
     def __init__(self, lines, pt=PageType.Invalid):
@@ -645,13 +483,24 @@ class PageCompleter(object):
             return self.PageStarted
         return self.NoMatch
 
-
-EngineModule = utils.Enum(Invalid=0, PageCompleter=1, PageSet=2,
-                            InstructionVariants=4)
-
 class DataStrings(object):
     def getStrings(self):
         return []
+
+class Pager(PageCompleter):
+    def __init__(self, data):
+	super(Pager, self).__init__()
+	self.PageFooters = [utils.SliceMatcher(data.getPageFooter(), pipe=utils.Pipes.WipeWhitespace)]
+	self.PageHeader = utils.SliceMatcher(data.getPageHeader(), pipe=utils.Pipes.WipeWhitespace)
+
+    def isHeader(self, line):
+        r = self.PageHeader.match(line)
+	return r
+
+    def isFooter(self, line):
+	r = any(h.match(line) for h in self.PageFooters)
+	return r
+
 
 class DataPump(object):
     def __init__(self, filename):
@@ -719,6 +568,10 @@ class EngineManager(object):
             self.ordered.append(eset)
             return eset
 
+class Stage(object):
+    (Start, Name, Summary, Bitheader, Operands, Variant, Mnemonics,
+     Pseudocode, Aliases, Symbols, Operation, Support, Components, Syntax,
+     Decode, Equivalency, SharedDecode) = utils.BinaryRange(17)
 
 class Engine(object):
     INVALID=Variant(Variant.Archetype | Variant.Invalid)
@@ -730,30 +583,272 @@ class Engine(object):
     ARM64=Variant(Variant.AArch64_ARM)
     ARM64SIMD=Variant(Variant.AArch64_SIMD)
 
+    def __init__(self):
+        self.stage = Stage.Start
+	self.insn = None
+        self.last_instruction = None
+	self.page_completer = Pager(self.getData())
+	self.target_count = self.getData().getTargetCount()
+	self.instructions = []
+	self.num_map = {}
+
+    def getData(self):
+	return None
+
     def getArchVariant(self):
         return self.INVALID
 
     def getProxies(self):
         return {}
 
-    def flushBitGroup(self, bits, comps):
-        if len(bits) > 0:
-            comps.append(BitOperand(' '.join(bits), 0, len(bits)))
-            bits[:] = []
+    def _parse_variant(self, line):
+        if line.endswith('variant'):
+            return line
+        return None
 
-    def getRawBits(self, part):
-        bits = []
-        for p in part:
-            if p in ['(', ')']:
-                continue
-            if p in ['1', '0', 'x']:
-                bits.append(p)
+    def _parse_bitheader(self, line):
+        " Require at least N integers on line to qualify "
+        NUM_PARTS_THRESHOLD = 6
+
+        def _collapse((gaps, last), value):
+            if last - 1 == value or last == 0:
+                if not gaps:
+                    gaps.append(last)
+                gaps.append(value)
+                return (gaps, value)
+            if len(gaps) > 1:
+                gaps.pop()
+            gaps.append((last, value))
+            return (gaps, value)
+
+        vals = [utils.Int(x) for x in filter(None, line.split(' '))]
+        filtered = filter(lambda x: x != None, vals)
+
+        if len(filtered) != len(vals):
+            return None
+        
+        if len(filtered) > NUM_PARTS_THRESHOLD:
+            gaps = reduce(_collapse, filtered[1:], ([], filtered[0]))
+            return gaps[0]
+        
+        return None
+
+    def _unpack_header(self, header):
+        def _mapper(item):
+            if isinstance(item, tuple):
+                return [item[0], item[1]]
+            return [item]
+        a = []
+        for i in map(_mapper, header):
+            a.extend(i)
+        return a
+
+    def _parse_components(self, line):
+        TWOBITS=['type', 'imm2', 'imod', 'sz', 'opt', '!=11', 'rotate']
+
+        def _create((name, header)):
+            s, l, t = header, 1, OperandType.INVALID
+            if isinstance(header, tuple):
+                s, l = header[1], header[0] - header[1] + 1
+            if name.startswith('R'):
+                t = OperandType.REGISTER
+            elif name.startswith('imm') or name == 'i':
+                t = OperandType.IMMEDIATE
+            elif name.startswith('!='):
+                t = OperandType.CONDITION
+            elif len(name) < 3:
+                t = OperandType.OPERAND
+            return BitOperand(name, s, l, t)
+
+        def _collapse((items, acc, first), value):
+            if value.name in ['0', '1', '(0)', '(1)', 'x']:
+                acc.append(value.name)
+                return (items, acc, first if first != None else value)
+            elif items and value.name == items[-1].name:
+                if acc:
+                    items.append(BitOperand(' '.join(acc), first, len(acc), OperandType.BITS))
+                items[-1].length += value.length
+                return (items, [], None)
             else:
-                return None
-        return bits
+                if acc:
+                    items.append(BitOperand(' '.join(acc), first, len(acc), OperandType.BITS))
+                items.append(value)
+                return (items, [], None)
+
+        vals = [s.strip() for s in line.split(' ') if s.strip()]
+	fixups = [s for s in vals if self.getData().isTwobitOperand(self.insn.num_id, s)]
+        if fixups:
+            for f in fixups:
+                vals.insert(vals.index(f)+1, f)
+
+        if len(vals) == len(self.header):
+            merged = map(_create, zip(vals, self.header))
+            joined = reduce(_collapse, merged, ([], [], None))
+            final = joined[0]
+            if joined[1]:
+                final.extend([BitOperand(' '.join(joined[1]), 0, len(joined[1]), OperandType.BITS)])
+            return final
+        else:
+            print vals
+            print self.header
+            utils.Log(' -- at: %s', (self.insn.num_id))
+            utils.Log(' -- component length mismatch: %d / %d', (len(vals), len(self.header)))
+
+    def _parse_mnemonics(self, line):
+        if self.getData().getMnemonicsMatcher().match(line):
+            num, name, title = self.getData().getMnemonicsMatcher().getMatched()
+            #utils.Log('-- new instruction: %s. %s%s', (num, name, title))
+            self.last_instruction = self.insn
+            self.insn = Instruction()
+            self.insn.setHeader(num, name, title)
+            if IsVariant(self.getArchVariant().value, Variant.Bits64):
+                self.insn.addEncoding(0)
+            self.stage = Stage.Bitheader
+            return True
+
+        return False
 
     def processPage(self, page):
-        return False
+        """Process all pages
+
+        :param page: A page
+        :type page: arm.common.ManualPage
+        """
+        
+        for line in page.page_lines:
+                if utils.WipeWhitespace(line) != '':
+                    self.process_line(line)
+
+        if self.last_instruction:
+            if IsVariant(self.getArchVariant().value, Variant.Bits64):
+                if len(self.last_instruction.encodings) > 1:
+                    self.last_instruction.encodings = self.last_instruction.encodings[1:]
+            retval = (True, self.last_instruction.validate())
+            self.current_instruction = self.last_instruction
+            self.last_instruction = None
+            return retval
+
+        return (False, False)
+
+    def process_line(self, line):
+	"""
+
+	:param line: A manual page line
+	:type line: str
+	"""
+        linesws = utils.WipeWhitespace(line)
+	linesr = line.strip()
+
+	if self.insn and self.insn.num_id != 0:
+            if self.stage != Stage.Syntax:
+                if self.getData().getEncodingMatcher().match(linesws):
+                    self.stage = Stage.Bitheader
+                    e = self.getData().getEncodingMatcher().getMatched()
+                    self.insn.addEncoding(e[1], e[0])
+                    #with utils.Indentation(1):
+                    #    utils.Log(' -- %s', (str(e)))
+                    return
+
+        if self._parse_mnemonics(line):
+            pass
+
+        elif self.stage == Stage.Bitheader:
+            header = self._parse_bitheader(linesr)
+            if header:
+                self.stage = Stage.Components
+                hdr = self._unpack_header(header)
+                arm32 = hdr[0] == 31 and hdr[-1] == 0
+                thumb32 = len([x for x in hdr if x == 0 or x == 15]) == 4
+                thumb16 = hdr[0] == 15 and hdr[-1] == 0
+
+                self.header = header
+
+                if arm32:
+                    self.insn.setEncodingIsa(self.getArchVariant())
+                elif thumb32:
+                    self.insn.setEncodingIsa(self.THUMB)
+                elif thumb16:
+                    self.insn.setEncodingIsa(self.THUMB16)
+                else:
+                    utils.Log(' -- at: %s', (self.insn.num_id))
+                    utils.Log(' -- unknown bit header: [%s]', (' '.join([str(x) for x in header])))
+            else:
+                self.insn.addSummary(filter(lambda x: x in string.printable, line.strip()))
+
+	elif self.stage == Stage.Mnemonics:
+            variant = self._parse_variant(linesr)
+            if not variant:
+                prefix = 'Applies when'
+                if linesr.startswith(prefix):
+                    self.insn.addConstraint(linesr[len(prefix):])
+                elif linesr == 'is equivalent to':
+                    self.stage = Stage.Equivalency
+                elif linesr.startswith('Decode for'):
+                    self.stage = Stage.Decode
+                elif linesr.startswith('Assembler symbols'):
+                    self.stage = Stage.Syntax
+                else:
+                    self.insn.addMnemonics(linesr)
+            else:
+                self.insn.addMnemonicsVariant(variant)
+
+        elif self.stage == Stage.Equivalency:
+            if linesr.startswith('and is'):
+                self.insn.addMnemonicAliasConstraint(linesr)
+                self.stage = Stage.Mnemonics
+            else:
+                self.insn.addMnemonicAlias(linesr)
+
+        elif self.stage == Stage.Decode:
+            if linesr.startswith('Notes for'):
+                self.stage = Stage.Pseudocode
+            elif linesr == 'Assembler symbols':
+		self.stage = Stage.Syntax
+            else:
+                self.insn.addDecode(linesr)
+
+        elif self.stage == Stage.Summary:
+            self.insn.addSummary(filter(lambda x: x in string.printable, line.strip()))
+
+	elif self.stage == Stage.Support:
+            variant = self._parse_variant(linesr)
+            if variant:
+                self.stage = Stage.Mnemonics
+                #utils.Log(' -- variant: %s', (variant))
+                self.insn.addMnemonicsVariant(variant)
+
+        elif self.stage == Stage.Components:
+            components = self._parse_components(line)
+            if components:
+                #with utils.Indentation(1):
+                #    utils.Log(' -- %s', (str(components)))
+
+                self.insn.setEncodingBits(components)
+                self.stage = Stage.Support
+            else:
+                raise Exception('Invalid components: ' + line)
+
+        elif self.stage == Stage.Pseudocode:
+            # don't care about the notes right now :/
+            if linesr.startswith('Assembler symbols'):
+                self.stage = Stage.Syntax
+
+	elif self.stage == Stage.Syntax:
+		if linesws == 'Operationforallencodings' or linesws == 'Operation':
+			self.stage = Stage.Operation
+		elif linesr.startswith('Shared decode'):
+			self.stage = Stage.SharedDecode
+		else:
+			self.insn.metadata['Syntax'].append(line)
+
+	elif self.stage == Stage.Operation:
+		self.insn.metadata['Operation'].append(line)
+
+	elif self.stage == Stage.SharedDecode:
+		if linesws == 'Operationforallencodings' or linesws == 'Operation':
+		    self.stage = Stage.Operation
+		else:
+		    self.insn.metadata['Decode'].append(line)
 
     def execute(self):
         last_num, num_proxies = 0, 0
@@ -796,11 +891,3 @@ class Engine(object):
         	        self.target_count - len(self.instructions), num_proxies,
         	        len(self.instructions) / float(self.target_count)),
         	       self)
-
-    def __init__(self):
-        self.page_completer = None
-        self.variant_lengths = None
-        self.instructions = None
-        self.current_instruction = None
-        self.num_map = {}
-        self.target_count = 0

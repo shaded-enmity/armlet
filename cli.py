@@ -25,7 +25,7 @@ from lib import utils
 
 from aarch32 import ARM32Processor
 from aarch32simdfp import ARM32SIMDProcessor
-from aarch64ng import ARM64Processor
+from aarch64 import ARM64Processor
 from aarch64simdfp import ARM64SIMDProcessor
 
 #from aarch64 import ARM64Processor
@@ -49,31 +49,35 @@ def Manifest():
 def main(argv):
     manifest, profiler = Manifest(), utils.Profiler()
     filenames = utils.FileParser(argv, 'f', manifest)
-
     if filenames:
         ''' measure the time it takes '''
         with profiler.probe('file_read'):
-            utils.Log('processing filename: %s', (filenames[0]),
+            utils.Log('processing filename: %s', (filenames[0][0]),
                        manifest['space'], utils.LogCat.Section)
 
             with utils.Indentation(1):
-                pump = common.DataPump(filenames[0])
+                pump = common.DataPump(filenames[0][0])
 
                 if pump.loadRawData():
 		    '''pump.registerEngines(ARM32Processor(), ARM32SystemProcessor(), 
 			ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())'''
                     pump.registerEngines(ARM32Processor(), ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())
-                    common.InitializeDecoder()
 
                     pump.execute(profiler)
         utils.Log('finished running in (%f seconds)', (profiler.getRuntime()),
                    manifest['space'], utils.LogCat.Leaf)
 
-       # pump.engines.ordered[0].instructions[3].serialize()
-       # pump.engines.ordered[1].instructions[15].serialize()
-       # pump.engines.ordered[3].instructions[153].serialize()
-
-        #print latex_serializer.serialize(pump.engines.ordered[0].instructions[1].serialize())
+        if filenames[1]:
+            with open(filenames[1][0], 'a+') as outf:
+                outf.truncate()
+                outf.write('data = [\n')
+                for engine in pump.engines.getEngines():
+                    outf.write('{"name": "%s", "instructions": [\n' % str(engine.__class__.__name__))
+                    for insn in engine.instructions:
+                        outf.writelines(insn.serialize())
+                        outf.write(',\n')
+                    outf.write(']},\n')
+                outf.write(']\n')
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
