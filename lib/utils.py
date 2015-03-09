@@ -173,12 +173,14 @@ def Usage(filename, manifest):
 
 def FileParser(args, optformat, manifest):
     try:
-        opts, dummy_args = getopt.getopt(args[1:], optformat + ':')
+	opts, dummy_args = getopt.getopt(args[1:], optformat + ':o:')
         filenames = Merge([], [v for (k, v) in opts if k == '-' + optformat])
+        output = Merge([], [v for (k, v) in opts if k == '-o'])
+
         if len(filenames) == 0:
             return Usage(args[0], manifest)
         BasicDesc(manifest)
-        return filenames
+        return (filenames, output)
     except getopt.GetoptError:
         return Usage(args[0], manifest)
 

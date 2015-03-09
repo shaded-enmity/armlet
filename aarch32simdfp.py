@@ -1,5 +1,6 @@
 from lib import utils
-from aarch32 import ARM32Data, ARM32Processor
+from arm import common
+from aarch32 import ARM32Data
 
 class ARM32SIMDData(ARM32Data): 
     MnemonicsMatcher = utils.RegexMatcher('F8.1.(\d*)\s*([A-Z1-9]{1,8})\s*(.*)')
@@ -28,7 +29,7 @@ class ARM32SIMDData(ARM32Data):
         return operand in TWOBITS
 
 
-class ARM32SIMDProcessor(ARM32Processor):
+class ARM32SIMDProcessor(common.Engine):
     def getArchVariant(self):
         return self.ARM32SIMD
 
