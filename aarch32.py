@@ -3,8 +3,38 @@ from arm import common
 import string, pprint, json
 
 class ARM32Data(common.DataStrings):
-    InstructionMnemonics = utils.RegexMatcher('F7.1.(\d*)\s*([A-Z1-9]{1,8})\s*(.*)')
-    InstructionEncoding = utils.RegexMatcher('^([AT])(\d+)$')
+    EncodingMatcher = utils.RegexMatcher('^([AT])(\d+)$')
+    MnemonicsMatcher = utils.RegexMatcher('F7.1.(\d*)\s*([A-Z1-9]{1,8})\s*(.*)')
+
+    @staticmethod
+    def getEncodingMatcher():
+        return ARM32Data.EncodingMatcher
+
+    @staticmethod
+    def getMnemonicsMatcher():
+        return ARM32Data.MnemonicsMatcher
+
+    @staticmethod
+    def getTargetCount():
+        return 293
+
+    @staticmethod
+    def getPageHeader():
+	return 'F7.1AlphabeticallistofT32andA32baseinstructionsetinstructions'
+    
+    @staticmethod
+    def getPageFooter():
+        return 'F7T32andA32BaseInstructionSetInstructionDescriptions'
+
+    @staticmethod
+    def getInstructionType():
+        return ARM32Instruction
+
+    @staticmethod
+    def isTwobitOperand(insn_num, operand):
+        TWOBITS=['type', 'imm2', 'imod', 'sz', 'opt', '!=11', 'rotate']
+        return operand in TWOBITS
+
 
 class ARM32Instruction(common.Instruction):
     def __init__(self):
@@ -28,7 +58,11 @@ class ARM32Instruction(common.Instruction):
         return self
 
     def addEncoding(self, archnum, support=None, isa=common.Variant.Invalid):
-        variant = common.EncodingVariant(isa, int(archnum))
+        a = utils.Int(archnum)
+        if a != None:
+            variant = common.EncodingVariant(isa, a)
+        else:
+            variant = common.EncodingVariant(isa, 1, support)
         variant.support.append(support)
         self.encodings.append(variant)
         return variant
@@ -107,6 +141,8 @@ class ARM32Instruction(common.Instruction):
                 utils.Log('--- validating "%s (%s)" (%i) encodings',
                         ((self.names[0] if len(self.names) else 'UNKNOWN'),
                          self.num_id, len(self.encodings)), self)
+
+                #ARM32JSONSerializer().serialize_instruction(self)
                 utils.Log('*** FAILED !!! ', (), self)
                 return False
             return True
@@ -125,10 +161,16 @@ class ARM32JSONSerializer(object):
             encodings.append({'name': enc.getName(), 'variant': str(enc.isa), 
                 'mnemonics': mnemonics, 'decode': enc.decode, 'bits': [{'name': bc.name, 'size': bc.length, 'type': bc.type} for bc in enc.bits]
                 })
-        remove = min([len(utils.LeadingWhitespace.match(x).group(0)) for x in insn.metadata['Operation']])
-        operation = [x[remove:].strip('\n\r') for x in insn.metadata['Operation']]
-        remove = min([len(utils.LeadingWhitespace.match(x).group(0)) for x in insn.metadata['Syntax']])
-        symbols = [''.join([c for c in x[remove:].strip('\n\r') if c in string.printable]) for x in insn.metadata['Syntax']]
+        if insn.metadata['Operation']:
+	   remove = min([len(utils.LeadingWhitespace.match(x).group(0)) for x in insn.metadata['Operation']])
+           operation = [x[remove:].strip('\n\r') for x in insn.metadata['Operation']]
+	else:
+	   operation = []
+	if insn.metadata['Syntax']:
+	   remove = min([len(utils.LeadingWhitespace.match(x).group(0)) for x in insn.metadata['Syntax']])
+           symbols = [''.join([c for c in x[remove:].strip('\n\r') if c in string.printable]) for x in insn.metadata['Syntax']]
+	else:
+           symbols = []
 
         jsondict = {
             'id': insn.num_id,
@@ -149,8 +191,10 @@ class ARM32JSONSerializer(object):
         return json.dumps(jsondict)
 
 class ARM32Pager(common.PageCompleter):
-    PageHeader = utils.SliceMatcher('F7.1AlphabeticallistofT32andA32baseinstructionsetinstructions', pipe=utils.Pipes.WipeWhitespace)
-    PageFooters = [utils.SliceMatcher('F7T32andA32BaseInstructionSetInstructionDescriptions', pipe=utils.Pipes.WipeWhitespace)]
+    def __init__(self, data):
+	super(ARM32Pager, self).__init__()
+	self.PageFooters = [utils.SliceMatcher(data.getPageFooter(), pipe=utils.Pipes.WipeWhitespace)]
+	self.PageHeader = utils.SliceMatcher(data.getPageHeader(), pipe=utils.Pipes.WipeWhitespace)
 
     def isHeader(self, line):
         r = self.PageHeader.match(line)
@@ -170,10 +214,13 @@ class ARM32Processor(common.Engine):
         self.stage = Stage.Start
 	self.insn = None
         self.last_instruction = None
-	self.page_completer = ARM32Pager()
-	self.target_count = 293
+	self.page_completer = ARM32Pager(self.getData())
+	self.target_count = self.getData().getTargetCount()
 	self.instructions = []
 	self.num_map = {}
+
+    def getData(self):
+	return ARM32Data
 
     def getArchVariant(self):
         return self.ARM32
@@ -253,7 +300,7 @@ class ARM32Processor(common.Engine):
                 return (items, [], None)
 
         vals = [s.strip() for s in line.split(' ') if s.strip()]
-        fixups = [s for s in TWOBITS if s in vals]
+	fixups = [s for s in vals if self.getData().isTwobitOperand(self.insn.num_id, s)]
         if fixups:
             for f in fixups:
                 vals.insert(vals.index(f)+1, f)
@@ -268,16 +315,19 @@ class ARM32Processor(common.Engine):
         else:
             print vals
             print self.header
+            utils.Log(' -- at: %s', (self.insn.num_id))
             utils.Log(' -- component length mismatch: %d / %d', (len(vals), len(self.header)))
 
     def _parse_mnemonics(self, line):
-        if ARM32Data.InstructionMnemonics.match(line):
-            num, name, title = ARM32Data.InstructionMnemonics.getMatched()
+        if self.getData().getMnemonicsMatcher().match(line):
+            num, name, title = self.getData().getMnemonicsMatcher().getMatched()
             #utils.Log('-- new instruction: %s. %s%s', (num, name, title))
             self.last_instruction = self.insn
-            self.insn = ARM32Instruction()
+            self.insn = self.getData().getInstructionType()()
             self.insn.setHeader(num, name, title)
-            self.stage = Stage.Summary
+            if common.IsVariant(self.getArchVariant().value, common.Variant.Bits64):
+                self.insn.addEncoding(0)
+            self.stage = Stage.Bitheader
             return True
 
         return False
@@ -294,6 +344,9 @@ class ARM32Processor(common.Engine):
                     self.process_line(line)
 
         if self.last_instruction:
+            if common.IsVariant(self.getArchVariant().value, common.Variant.Bits64):
+                if len(self.last_instruction.encodings) > 1:
+                    self.last_instruction.encodings = self.last_instruction.encodings[1:]
             retval = (True, self.last_instruction.validate())
             self.current_instruction = self.last_instruction
             self.last_instruction = None
@@ -312,9 +365,9 @@ class ARM32Processor(common.Engine):
 
 	if self.insn and self.insn.num_id != 0:
             if self.stage != Stage.Syntax:
-                if ARM32Data.InstructionEncoding.match(linesws):
+                if self.getData().getEncodingMatcher().match(linesws):
                     self.stage = Stage.Bitheader
-                    e = ARM32Data.InstructionEncoding.getMatched()
+                    e = self.getData().getEncodingMatcher().getMatched()
                     self.insn.addEncoding(e[1], e[0])
                     #with utils.Indentation(1):
                     #    utils.Log(' -- %s', (str(e)))
@@ -324,7 +377,7 @@ class ARM32Processor(common.Engine):
             pass
 
         elif self.stage == Stage.Bitheader:
-            header = self._parse_bitheader(line)
+            header = self._parse_bitheader(linesr)
             if header:
                 self.stage = Stage.Components
                 hdr = self._unpack_header(header)
@@ -335,13 +388,16 @@ class ARM32Processor(common.Engine):
                 self.header = header
 
                 if arm32:
-                    self.insn.setEncodingIsa(self.ARM32)
+                    self.insn.setEncodingIsa(self.getArchVariant())
                 elif thumb32:
                     self.insn.setEncodingIsa(self.THUMB)
                 elif thumb16:
                     self.insn.setEncodingIsa(self.THUMB16)
                 else:
+                    utils.Log(' -- at: %s', (self.insn.num_id))
                     utils.Log(' -- unknown bit header: [%s]', (' '.join([str(x) for x in header])))
+            else:
+                self.insn.addSummary(filter(lambda x: x in string.printable, line.strip()))
 
 	elif self.stage == Stage.Mnemonics:
             variant = self._parse_variant(linesr)
@@ -370,6 +426,8 @@ class ARM32Processor(common.Engine):
         elif self.stage == Stage.Decode:
             if linesr.startswith('Notes for'):
                 self.stage = Stage.Pseudocode
+            elif linesr == 'Assembler symbols':
+		self.stage = Stage.Syntax
             else:
                 self.insn.addDecode(linesr)
 
@@ -392,7 +450,7 @@ class ARM32Processor(common.Engine):
                 self.insn.setEncodingBits(components)
                 self.stage = Stage.Support
             else:
-                raise Exception('Invalid components: ' + str(components))
+                raise Exception('Invalid components: ' + line)
 
         elif self.stage == Stage.Pseudocode:
             # don't care about the notes right now :/
@@ -400,7 +458,7 @@ class ARM32Processor(common.Engine):
                 self.stage = Stage.Syntax
 
 	elif self.stage == Stage.Syntax:
-		if linesws == 'Operationforallencodings':
+		if linesws == 'Operationforallencodings' or linesws == 'Operation':
 			self.stage = Stage.Operation
 		else:
 			self.insn.metadata['Syntax'].append(line)

@@ -81,6 +81,8 @@ def Int(s):
 	return int(s, 0)
     except ValueError:
 	return None
+    except TypeError:
+        return None
 
 def Add(a, b):
     return a + b

@@ -223,7 +223,8 @@ class BitOperand(object):
         return '<%s> (%i)' % (self.name, self.length)
 
 class EncodingVariant(utils.Test):
-    def __init__(self, isa, num):
+    def __init__(self, isa, num=1, name=''):
+        self.name = name
         self.isa = isa
         self.num = num
         self.mnemonics = []
@@ -233,6 +234,8 @@ class EncodingVariant(utils.Test):
         self.decode = []
 
     def getName(self):
+        if self.name:
+            return self.name
         if self.isa in [Variant.AArch32_THUMB, Variant.AArch32_THUMB16]:
             return 'T%i' % self.num
         return 'A%i' % self.num
@@ -782,7 +785,7 @@ class Engine(object):
                                 num_proxies += 1
                 last_num = number
 
-        if self.insn.validate():
+        if self.insn and self.insn.validate():
             self.instructions.append(self.insn)
             self.num_map[utils.Int(self.insn.num_id)] = self.insn
 

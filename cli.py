@@ -24,11 +24,12 @@ from arm import common, latex_serializer
 from lib import utils
 
 from aarch32 import ARM32Processor
-#from aarch32_system import ARM32SystemProcessor
-#from aarch32_simd import ARM32SIMDProcessor
+from aarch32simdfp import ARM32SIMDProcessor
+from aarch64ng import ARM64Processor
+from aarch64simdfp import ARM64SIMDProcessor
 
-from aarch64 import ARM64Processor
-from aarch64_simd import ARM64SIMDProcessor
+#from aarch64 import ARM64Processor
+#from aarch64_simd import ARM64SIMDProcessor
 
 def Manifest():
     _N_project_descr = {'license': 'GNU/GPL 2.0', 'year': 2013,
@@ -61,14 +62,17 @@ def main(argv):
                 if pump.loadRawData():
 		    '''pump.registerEngines(ARM32Processor(), ARM32SystemProcessor(), 
 			ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())'''
-                    pump.registerEngines(ARM32Processor())
+                    pump.registerEngines(ARM32Processor(), ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())
                     common.InitializeDecoder()
 
                     pump.execute(profiler)
         utils.Log('finished running in (%f seconds)', (profiler.getRuntime()),
                    manifest['space'], utils.LogCat.Leaf)
 
-        pump.engines.ordered[0].instructions[8].serialize()
+       # pump.engines.ordered[0].instructions[3].serialize()
+       # pump.engines.ordered[1].instructions[15].serialize()
+       # pump.engines.ordered[3].instructions[153].serialize()
+
         #print latex_serializer.serialize(pump.engines.ordered[0].instructions[1].serialize())
 
 if __name__ == '__main__':
