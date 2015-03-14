@@ -1,6 +1,7 @@
 from lib import utils
 from arm import common
 
+
 class ARM64SIMDData(common.DataStrings): 
     MnemonicsMatcher = utils.RegexMatcher('C7\.3\.(\d*)\s*([A-Z1-9]{1,8})\s*(.*)')
     EncodingMatcher = utils.RegexMatcher('^(Scalar|Vector|Nooffset|Pre-index|Post-index|Unsignedoffset|Signedoffset)()$')

@@ -1,8 +1,10 @@
 from lib import utils
 from arm import common
+
+
 class ARM64Data(common.DataStrings): 
     MnemonicsMatcher = utils.RegexMatcher('C6\.6\.(\d*)\s*([A-Z1-9]{1,8})\s*(.*)')
-    EncodingMatcher = utils.RegexMatcher('^(Pre-index|Post-index|Unsignedoffset)()$')
+    EncodingMatcher = utils.RegexMatcher('^(Pre-index|Post-index|Unsignedoffset|Signedoffset)()$')
 
     @staticmethod
     def getEncodingMatcher():

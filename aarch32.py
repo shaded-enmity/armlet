@@ -1,9 +1,10 @@
 from lib import utils
 from arm import common
 
+
 class ARM32Data(common.DataStrings):
     EncodingMatcher = utils.RegexMatcher('^([AT])(\d+)$')
-    MnemonicsMatcher = utils.RegexMatcher('F7.1.(\d*)\s*([A-Z1-9]{1,8})\s*(.*)')
+    MnemonicsMatcher = utils.RegexMatcher('F7\.1\.(\d*)\s*([A-Z1-9]{1,8})\s*(.*)')
 
     @staticmethod
     def getEncodingMatcher():

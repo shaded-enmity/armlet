@@ -395,9 +395,20 @@ class JSONSerializer(object):
         names = [n.replace(',', '').strip() for n in insn.names]
         encodings = []
         for enc in insn.encodings:
+	    counter, num = enc.getBitSize(), 0
+	    for x in enc.bits:
+		counter -= x.length
+		pnum = 0
+		if x.type == OperandType.BITS:
+		    ln = x.name.count(' ')
+		    for n, y in enumerate(x.name.split(' ')):
+		        if y in ['1', '(1)']:
+			    pnum |= 1 << (ln - n)
+		    num |= pnum << counter
+		    
             mnemonics = [{'name': mv.name, 'constraint': mv.constraint.string, 'mnemonics': [{'value': m.value, 'aliases': [{'target': a.value, 'constraint':a.constraint.string} for a in m.aliases]} for m in mv.mnemonics]} for mv in enc.mnemonics]
             encodings.append({'name': enc.getName(), 'variant': str(enc.isa), 
-                'mnemonics': mnemonics, 'decode': enc.decode, 'bits': [{'name': bc.name, 'size': bc.length, 'type': bc.type} for bc in enc.bits]
+		    'mnemonics': mnemonics, 'mask': '0x%08x'%num, 'decode': enc.decode, 'bits': [{'name': bc.name, 'size': bc.length, 'type': bc.type} for bc in enc.bits]
                 })
         if insn.metadata['Operation']:
 	   remove = min([len(utils.LeadingWhitespace.match(x).group(0)) for x in insn.metadata['Operation']])
@@ -434,7 +445,6 @@ class JSONSerializer(object):
 	    }
         }
 
-        #pprint.pprint(jsondict)
 	return json.dumps(jsondict, sort_keys=True, indent=2, separators=(',', ': '))
 
 class ManualPage(object):

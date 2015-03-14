@@ -2,8 +2,9 @@ from lib import utils
 from arm import common
 from aarch32 import ARM32Data
 
+
 class ARM32SIMDData(ARM32Data): 
-    MnemonicsMatcher = utils.RegexMatcher('F8.1.(\d*)\s*([A-Z1-9]{1,8})\s*(.*)')
+    MnemonicsMatcher = utils.RegexMatcher('F8\.1\.(\d*)\s*([A-Z1-9]{1,8})\s*(.*)')
 
     @staticmethod
     def getMnemonicsMatcher():

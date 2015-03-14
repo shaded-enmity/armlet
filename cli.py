@@ -70,7 +70,7 @@ def main(argv):
         if filenames[1]:
             with open(filenames[1][0], 'a+') as outf:
                 outf.truncate()
-                outf.write('data = [\n')
+                outf.write('var InstructionData = [\n')
                 for engine in pump.engines.getEngines():
                     outf.write('{"name": "%s", "instructions": [\n' % str(engine.__class__.__name__))
                     for insn in engine.instructions:

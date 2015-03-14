@@ -1,0 +1,133 @@
+<html lang="en">
+  <head>
+  </head>
+  <link rel="stylesheet" href="//cdn.everything.io/kickstart/3.x/css/kickstart.min.css" />
+  <link href='//fonts.googleapis.com/css?family=Oxygen:400,700,300' rel='stylesheet' type='text/css'>
+  <link href='//fonts.googleapis.com/css?family=Cousine' rel='stylesheet' type='text/css'>
+  <style type="text/css">
+	.menu-item {
+		font-family: Oxygen; border: 1px solid #aaa; margin-bottom: 1px; cursor: hand
+	}
+
+	#nav-menu {
+		width: 20%; height: 100%; position: fixed; background-color: #ddd; overflow: auto; top: 30px
+	}
+
+	body {
+		overflow-x: hidden;
+	}
+
+	li {
+		padding-left: 10px
+	}
+
+	ul {
+		margin-bottom: 0;
+	}
+  </style>
+ <body>
+ <div style="background-color: #111; color: #aaa; padding: 1px 7px; position: fixed; font-weight: 300; font-size: 14px; height: 30px; width: 100%; z-index: 1">Ω CODEX<span style="color: #238ad4; font-weight: 600">ARMLET</span></div>
+    <div id="content">
+	    <div id="nav-menu"></div>
+	    <div style="position: relative; width: 80%; left: 20%; margin-left: 10px; font-family: Oxygen; top: 30px;" id="c"></div>
+    </div>
+    <script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+    <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    <script type="text/javascript" src="//cdn.everything.io/kickstart/3.x/js/kickstart.min.js"></script>
+    <script src="./all.json"></script> 
+    <script type="text/javascript">
+   	$( document ).ready(function() {
+		var htmlEncode = function( value ) {
+			return $('<div/>').text(value).html();
+		};
+
+		var instruction_click_handler = function( insn, domNode ) {
+			console.log(insn);
+			$('#c').empty();
+			//console.log(domNode);
+			$('#c').append("<div style='width: 15%; position: fixed; border-radius: 4px; box-shadow: 1px 1px 1px #888; top: 3%; right: 1%; background-color: #ddd;' id='toc'><p align='center' style='border-bottom: 1px solid #666; margin: 0px 6px'><b>Table of Contents</b></p><span style='padding: 10px 0px; margin: 10px 0px'><li><a href='#summary'>SUMMARY</a></li><li><a href='#encodings'>ENCODINGS</a></li><ul id='encli'></ul><li><a href='#operation'>OPERATION</a></li><li><a href='#symbols'>SYMBOLS</a></li></span></div>");
+
+			// 1. HEADING
+			$('#c').append("<h2 style='margin-top: 0' id='summary'>" + domNode.text() + "</h2>");
+			$('#c').append("<div style='white-space: pre-wrap; font-size: 12px'>" + insn.summary.lines.join("\n") + "</div>");
+
+			// 2. ENCODING
+			$('#c').append("<h3 id='encodings'>ENCODINGS</h3>");
+			$(insn.encodings).each(function( index ) {
+				var self = this;
+				// 2.1 BIT HEADER
+				var counter = this.variant.indexOf("Bits16") > -1 ? 16 : 32;
+				var specialCounter = this.variant.indexOf("Thumb") > -1 && counter == 32;
+				$('#c').append("<div style='font-size: 12px' id='"+this.name+"-lab'><span style='padding: 2px 4px; background-color: #aa0022; color: white; font-weigh: bold; font-family: monospace'>" + this.name + "</span> <span style='padding: 2px 4px; background-color: #11aa11; color: white; font-weigh: bold; font-family: monospace'>"+ this.variant +"</span> <span style='padding: 2px 4px; background-color: #0000aa; color: white; font-weigh: bold; font-family: monospace'>Bitmask: "+this.mask+"</span></div>");
+				$('#encli').append("<li><a href='#"+ this.name +"-lab'>"+ this.name +"</a></li>");
+				$('#c').append("<div id='"+ this.name +"'></div>");
+				$('#c').append("<div id='"+ this.name +"-components'></div>");
+				$(this.bits).each(function( index ) {
+					for( var i = 0; i < this.size; i++ ) {
+						print = specialCounter ? (counter > 16 ? counter-16:counter) : counter ;
+						print = this.type == 5 ? print : ( i == 0 || (i == this.size - 1) ? print : "&nbsp;" );
+						$('#'+self.name).append("<span style='background-color: #aaa; display: inline-block; text-align: center; font-family: monospace; width: 30px;'>" + print + "</span>");
+						--counter;
+					}
+
+					$('#'+self.name+'-components').append("<span style='background-color: #ccc; font-size: 12px; color: #555; font-weight: bold; display: inline-block; text-align: center; font-family: monospace; border-right: 1px solid #999; height: 36px; padding-top: 6px; width: "+this.size*30+"px'>"+this.name+"</span>");
+				});
+
+				$('#' + self.name + '-components span:last-child').css({"border": "0"});
+
+				// 2.2 MNEMONICS
+				$(this.mnemonics).each(function( index ) {
+						$('#c').append("<h5>"+ this.name +"<span style='color: #888'>" + this.constraint + "</span></h5>");
+						$(this.mnemonics).each(function( index ) { $('#c').append("<div style='font-size: 12px'>" + htmlEncode(this.value) + "</div>"); });
+				});
+				$('#c').append("<div style='font-size: 12px'><pre>" + htmlEncode(self.decode.join("\n"))  + "</pre></div>");
+				$('#c').append("<hr />");
+			});
+
+			// 3. OPERATION
+			$('#c').append("<h3 id='operation'>OPERATION</h3>");
+			$('#c').append("<div style='font-size: 12px'><pre>" + htmlEncode(insn.operation.lines.join("\n"))  + "</pre></div>");
+
+			// 4. SYMBOLS
+			$('#c').append("<h3 id='symbols'>SYMBOLS</h3>");
+			$('#c').append("<div style='font-size: 12px; white-space: pre-wrap; font-family: monospace'>" + htmlEncode(insn.symbols.lines.join("\n"))  + "</div>");
+		};
+			
+		var processor_click_handler = function( node, domNode ) {
+			var quit = $('#active').prev()[0] == domNode[0];
+			$('#active').remove();
+			if( quit ) {
+				return;
+			}
+			domNode.after("<div id='active'></div>");
+
+			$(node.instructions).each(function( index ){
+				var self = this;
+				var name = this.names[0]
+				if( this.names.length == 2 && this.names[1] != "" ) {
+					if( this.names[1].indexOf("(") != 0 ) {
+						name += ", " + this.names[1];
+					} else {
+						name += " " + this.names[1];
+					}
+				}
+				$('#active').append("<div style='padding-left: 20px; cursor: hand'>"+this.id+". "+name+"</div>");
+				$('#active div:last-child').click(function() {
+					instruction_click_handler(self, $(this));
+				});
+			});
+		};
+
+		$(InstructionData).each(function( index ) {
+			var self = this;
+
+			$("#nav-menu").append("<div class='menu-item'>"+ self.name +"</div>");
+
+			$('#nav-menu div:last-child').click(function(){ 
+				processor_click_handler(self, $(this)); 
+			});
+		});
+   	});
+    </script>
+    </body>
+</html>
