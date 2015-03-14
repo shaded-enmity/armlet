@@ -70,7 +70,7 @@ ARMlet allows you to store all the object representations of instructions, pseud
 ### Example run
 
 ```
-shaded-enmity$ ./cli.py -f data/aarch_combined
+shaded-enmity$ ./cli.py -f data/aarch_combined -o all.json
 /********************************************************************************
  ** 
                  __    __.__ __.__
@@ -86,33 +86,27 @@ shaded-enmity$ ./cli.py -f data/aarch_combined
 
 [!] cwd "/armlet"
 [+] processing filename: data/aarch_combined
-    [$] successfully loaded (104997) lines
+    [$] successfully loaded (124071) lines
     [v] ==========================================================================
     [>] aarch32::ARM32Processor 
-        [!] 291/291	instructions	[0, 12, 1.000000]
-    [>] aarch32_system::ARM32SystemProcessor 
-        [!] 22/22	instructions	[0, 2, 1.000000]
-    [>] aarch32_simd::ARM32SIMDProcessor 
-        [!] 172/172	instructions	[0, 4, 1.000000]
+        [!] 293/293     instructions    [0, 0, 1.000000]
+    [>] aarch32simdfp::ARM32SIMDProcessor 
+        [!] 235/235     instructions    [0, 0, 1.000000]
     [>] aarch64::ARM64Processor 
-        [!] 224/224	instructions	[0, 0, 1.000000]
-    [>] aarch64_simd::ARM64SIMDProcessor 
-        [!] 350/350	instructions	[0, 0, 1.000000]
+        [!] 223/223     instructions    [0, 0, 1.000000]
+    [>] aarch64simdfp::ARM64SIMDProcessor 
+        [!] 350/350     instructions    [0, 0, 1.000000]
     [v] ==========================================================================
-[-] finished running in (9.675208 seconds)
+[-] finished running in (6.188688 seconds)
 ```
 
 ## Installing
 
-If you're lazy you can use the Dockerfile. Otherwise follow these steps on any recent installation of Fedora 21:
-
-	1.  yum install poppler-utils
-	2.  git clone https://github.com/shaded-enmity/armlet
-	3.  cd armlet && make
-	4.  Download ARMv8-A Reference Manual into `./Data`
-	5.  ./armlet
+TODO :)
 
 ##  Implementation checklist
+
+TODO
 
 | Status | Name |
 | ------ | ---- |

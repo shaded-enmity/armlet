@@ -20,15 +20,16 @@
 
 import sys
 
-from arm import common
+from arm import common, latex_serializer
 from lib import utils
 
 from aarch32 import ARM32Processor
-from aarch32_system import ARM32SystemProcessor
-from aarch32_simd import ARM32SIMDProcessor
-
+from aarch32simdfp import ARM32SIMDProcessor
 from aarch64 import ARM64Processor
-from aarch64_simd import ARM64SIMDProcessor
+from aarch64simdfp import ARM64SIMDProcessor
+
+#from aarch64 import ARM64Processor
+#from aarch64_simd import ARM64SIMDProcessor
 
 def Manifest():
     _N_project_descr = {'license': 'GNU/GPL 2.0', 'year': 2013,
@@ -48,24 +49,35 @@ def Manifest():
 def main(argv):
     manifest, profiler = Manifest(), utils.Profiler()
     filenames = utils.FileParser(argv, 'f', manifest)
-
     if filenames:
         ''' measure the time it takes '''
         with profiler.probe('file_read'):
-            utils.Log('processing filename: %s', (filenames[0]),
+            utils.Log('processing filename: %s', (filenames[0][0]),
                        manifest['space'], utils.LogCat.Section)
 
             with utils.Indentation(1):
-                pump = common.DataPump(filenames[0])
+                pump = common.DataPump(filenames[0][0])
 
                 if pump.loadRawData():
-		    pump.registerEngines(ARM32Processor(), ARM32SystemProcessor(), 
-			ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())
-                    common.InitializeDecoder()
+		    '''pump.registerEngines(ARM32Processor(), ARM32SystemProcessor(), 
+			ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())'''
+                    pump.registerEngines(ARM32Processor(), ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())
 
                     pump.execute(profiler)
         utils.Log('finished running in (%f seconds)', (profiler.getRuntime()),
                    manifest['space'], utils.LogCat.Leaf)
+
+        if filenames[1]:
+            with open(filenames[1][0], 'a+') as outf:
+                outf.truncate()
+                outf.write('var InstructionData = [\n')
+                for engine in pump.engines.getEngines():
+                    outf.write('{"name": "%s", "instructions": [\n' % str(engine.__class__.__name__))
+                    for insn in engine.instructions:
+                        outf.writelines(insn.serialize())
+                        outf.write(',\n')
+                    outf.write(']},\n')
+                outf.write(']\n')
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))

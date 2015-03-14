@@ -31,6 +31,7 @@ LogCatPrefixes = ['!', '$', '+', '-', 'v', '@', '>']
 Separators = {'-': '<>', '_': '[]', '=': '{}', '+': '()', '^': '\'\''}
 BitPairs = ['.-', '01', 'oX']
 WhiteSpacePattern = re.compile(r'\s+')
+LeadingWhitespace = re.compile(r'^\s+')
 
 def StringList(fromlist):
     return [str(f) for f in fromlist]
@@ -80,6 +81,8 @@ def Int(s):
 	return int(s, 0)
     except ValueError:
 	return None
+    except TypeError:
+        return None
 
 def Add(a, b):
     return a + b
@@ -170,12 +173,14 @@ def Usage(filename, manifest):
 
 def FileParser(args, optformat, manifest):
     try:
-        opts, dummy_args = getopt.getopt(args[1:], optformat + ':')
+	opts, dummy_args = getopt.getopt(args[1:], optformat + ':o:')
         filenames = Merge([], [v for (k, v) in opts if k == '-' + optformat])
+        output = Merge([], [v for (k, v) in opts if k == '-o'])
+
         if len(filenames) == 0:
             return Usage(args[0], manifest)
         BasicDesc(manifest)
-        return filenames
+        return (filenames, output)
     except getopt.GetoptError:
         return Usage(args[0], manifest)
 

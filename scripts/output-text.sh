@@ -5,8 +5,8 @@
 # Pavel Odvody - 2014 
 #
 
-ARM_MANUAL_PATTERN='^DDI0487A_a_armv8_arm([a-z1-9_]*)\.pdf$'
-ARM_MANUAL_DIR='../data/'
+ARM_MANUAL_PATTERN='^DDI0487A_._armv8_arm([a-z1-9_]*)\.pdf$'
+ARM_MANUAL_DIR=$PWD
 ARM_MANUAL_FILE=
 
 PDFTOTEXT_ARGUMENTS='-layout'
@@ -21,6 +21,10 @@ function process_section() {
 	echo "     + dumping $3"
 	$PDFTOTEXT $PDFTOTEXT_ARGUMENTS -f $1 -l $2 $ARM_MANUAL_DIR$ARM_MANUAL_FILE\
 	       	$ARM_MANUAL_DIR$3
+
+	# skip first 12 lines at the start of each section
+	# and also get rid of trailing lines
+	tail -n+12 $ARM_MANUAL_DIR$3 | grep -Ev 'ARM DDI 0487A\.a*|ID090413*' > "$ARM_MANUAL_DIR$3.txt"
 }
 
 function find_manual_file() {

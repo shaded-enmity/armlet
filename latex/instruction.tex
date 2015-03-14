@@ -19,6 +19,7 @@
 \pgfkeys{/tikz/fetch name/.code={\pgfkeys{/inst/#1/ref name}}}%
 \pgfkeys{/tikz/fetch color/.code={\pgfkeys{/inst/#1/ref color}}}%
 \pgfkeys{/tikz/bit header/.default=0, /tikz/bit header/.initial=0}%
+\pgfkeys{/tikz/header style/.default=32, /tikz/header style/.initial=32}%
 \pgfkeys{/tikz/description/.default=0, /tikz/description/.initial=0}%
 \pgfkeys{/tikz/counters/.code args={#1 and #2}{\addtocounter{#1}{1} \addtocounter{#2}{1}}}%
 \pgfkeys{/tikz/bitnode/.code args={#1 and #2}{}}%
@@ -27,6 +28,8 @@
 \pgfkeys{/tikz/add ticks/.style={execute at end scope={\addticks}}}%
 \pgfkeys{/tikz/shade mix/.style={fill=black!#1}}%
 \pgfkeys{/tikz/color mix/.style={fill=blue!#1!green!50}}%
+\pgfkeys{/tikz/mix/.code args={#1 and #2}{}}%
+\pgfkeys{/tikz/mix/.add style={fill=#2!#1}{}}%
 \pgfkeys{/tikz/reset counter/.code={\setcounter{#1}{0}}}%
 %
 % INIT MACROS
@@ -55,7 +58,7 @@
 	%
 	%
 	\pgfkeys{%
-	  /object/.cd, bit coverage/.initial=2, show overlay/.initial=0, node text/.initial={}, var type/.initial=0,%
+	  /object/.cd, bit coverage/.initial=2, show overlay/.initial=0, node text/.initial={}, var type/.initial=0, color/.initial={},%
 	  name/.initial={}, bits/.initial=0, name overlay/.initial={}, all bits/.style={bit coverage=1}, edge bits/.style={bit coverage=2},%,
 	  bitpattern/.style={var type=0}, register/.style={var type=1}, opcode/.style={var type=2}, named/.style={var type=4}%
 	}%
@@ -85,8 +88,7 @@
 		\pgfkeys{/tikz/variants/.append code={%
 			\begin{scope}[start chain=mnem going right, every node/.style={minimum height=0.6cm,node distance=0.3cm and -0.02555cm}]%
 				\node[on chain=variants, minimum size=0cm, name=mnemstart, yshift=+5mm]{};%
-				\path[fill=white!90!black] ($(variants-end.north west)-(1.34cm,0.2)$) rectangle ($(variants-end.north west)-(header-anchor-start)-(1.02cm,2.8)$);%
-				\path[thick,color=black!50] ($(variants-end.west)-(1.34cm,0.8)$) edge ($(variants-end.south west)-(header-anchor-start)-(+1.02,2.215)$);%
+				\path[fill=black!2] ($(variants-end.north west)-(1.34cm,0.2)$) rectangle ($(variants-end.north west)-(header-anchor-start)-(1.02cm,2.39)$);%
 				\pgfkeys{/mnemonics/.cd, mnemonics name=##2, pause, ##1}%
 				\node[on chain=variants, minimum size=0cm, yshift=-0.2cm, name=var-title]{};%
 			\end{scope}%
@@ -101,13 +103,20 @@
 	%
 	\newcommand{\newvariant}[3]{%
 		\pgfkeys{/tikz/variants/.append code={%
-			\path[fill=black!20!white] ($(variants-end.north west)-(1.34cm,0.175)$) rectangle ($(variants-end.north west)-(header-anchor-start)-(1.02cm,2.6)$);
-			\path[thick,color=black!50] ($(variants-end.west)-(1.34cm,0.6)$) edge ($(variants-end.south west)-(header-anchor-start)-(+1.02,2.03)$);
-			\node[anchor=west,name=var-title, on chain=variants]{\texttt{ ##1} $($};%
-			\node[name=var-cond,right=of var-title, rounded corners=1mm, fill=\pgfkeysvalueof{/inst/##2/ref color}]{\texttt{\pgfkeys{/tikz/fetch name={##2}}}};%
-			\node[right=of var-cond, name=variant-anchor]{\texttt{##3})};%
+			\path[fill=black!8] ($(variants-end.north west)-(1.34cm,0.17)$) rectangle ($(variants-end.north west)-(header-anchor-start)-(1.02cm, 2.09)$);%
+			\node[on chain=variants, yshift=-0.150cm] {};%
+			\node[name=var-title, right of=variants-end] {\texttt{##1 asdasfasgdgfdhfdh  }};%
+			\ifx##2 
+			   \node[name=var-cond,right=of var-title, rounded corners=1mm, fill=\pgfkeysvalueof{/inst/##2/ref color}]{\texttt{\pgfkeys{/tikz/fetch name={##2}}}};%
+			   \node[right=of var-cond, name=variant-anchor]{\texttt{##3}};%
+			\fi
 		}}%
 	};%
+	%
+	% Toggle header
+	% \headerstyle
+	%
+	\newcommand{\headerstyle}[1]{ \pgfkeys{/tikz/header style=##1}};%
 	%
 	%
 	\newcommand*{\addpart}[1][]{\@object[##1]};%
@@ -129,13 +138,14 @@
 	  \pgfkeysgetvalue{/object/bit coverage}{\coverage}%
 	  \ifx\coverage\pgfutil@empty\def\coverage{0}\fi%
 	  %
+	  \pgfkeysgetvalue{/object/color}{\color}%
+	  %
 	  \pgfkeysgetvalue{/object/name overlay}{\objcolor}%
-	  \ifx\objcolor\pgfutil@empty\edef\objcolor{0}\fi%
 	  %
 	  \pgfkeysgetvalue{/object/var type}{\vartype}%
 	  \ifx\vartype\pgfutil@empty\def\vartype{0}\fi%
 	  %
-	  \xdef\objmacro{\noexpand\addobject {\objname}{\objcolor}}\aftergroup\objmacro	   
+	  \xdef\objmacro{\noexpand\addobject {\objname}{\color!20}}\aftergroup\objmacro	   
 	  %
 	  \def\vtbitpattern{0}%
 	  \ifx\vartype\vtbitpattern%
@@ -156,11 +166,14 @@
 	  	\foreach\bit[evaluate=\rc using {!Mod(\theiterator,2)==0?\hues}] in \bitrange%%
 	  	{%%
 		  	\begin{scope}[counters=iterator and parts, add ticks]%%
-	  			\node[headernode] {\footnotesize\texttt{\bitlabel{\theparts}{\coverage}{\nbits}{\theiterator}}};%
+		  		\pgfkeysgetvalue{/tikz/header style}{\style}%
+		  		\ifnum\style=32\gdef\value{\theiterator}\else \gdef\value{\pgfmathparse{int(\theiterator>16?\theiterator-16:\theiterator)}\pgfmathresult}\fi%
+	  			\node[headernode, fill=gray!10] {\footnotesize\texttt{\bitlabel{\theparts}{\coverage}{\nbits}{\value}}};%
 	  			\node[bitnode={\tikzchaincurrent} and {\nbits}, {\mixkey}=\rc] {\nodeeval};%
+	  			\ifx\color\vtempty\else\path[mix={\rc} and {\color}] (vert-end.north west) rectangle (vert-end.south east);\fi%
 	  		\end{scope}%%
 	  	};%%
-	    \ifx\objcolor\vtempty\else%%
+	   	 \ifx\objcolor\vtempty\else%%
 	  		\draw[thick,fill=\objcolor] ($(vert-end.west) + (0,-0.185)$) rectangle ($(vert-begin.south east) + (0,0.005)$) node[midway] (\objname) {\footnotesize\texttt{\objname}};%%
 	  	\fi%%
 	  	\drawbox%
@@ -183,51 +196,32 @@
 			\node[anchor=west,name=anchor-root,on chain=variants] at ($(vert-end.south east) + (0.75,0.05)$) {};%
 			\pgfkeys{/tikz/variants}%
 		\end{scope}%	
-		\draw[thick,color=black!100] (header-anchor-start) rectangle ($(mnem-begin.south west) - (master-end.south west) + (0.095, -0.34)$);
+		\draw[thick,color=black!100] (header-anchor-start) rectangle ($(mnem-begin.south west) - (master-end.south west) + (0.175, -0.3)$);
 	\end{scope}%
 }%
 %
 %
 \scalebox{0.9}{
 \begin{tikzpicture}%
-	\begin{instruction}{85. LDR (register)}%
-	%
-		\addpart[bits=5,register] {Rd};%	
-		\addpart[bits=5,register] {Rn};%
-		\addpart[bits=2] {0, 1};%
-		\addpart[bits=1,opcode] {S};%
-		\addpart[name=opc1,opcode,bits=3,name overlay=red!30] {option};%
-		\addpart[bits=5,register] {Rm};%
-		\addpart[bits=9] {1, 1, 0, 0, 0, 0, 1, 1, 1};%
-		\addpart[name=size,bits=2,name overlay=orange!50] {x,1};%	
-		%
-		\newvariant{32-bit variant}{size}{== 10};%
-		%
-		\newmnemonics[operand={<Wt>}, comma, open bracket, optional={<Xn|SP>}, comma, optional={<R>}, optional={<m>},
-		   open curly, variant={<extend>}, open curly, comma, inner variant={<amount>}, 
-		   close curly, close curly, close bracket]{LDR};
-		%
-		\newvariant{64-bit variant}{size}{== 11};%
-		%
-		\newmnemonics[operand={<Xt>}, comma, open bracket, optional={<Xn|SP>}, comma, optional={<R>}, optional={<m>},
-		   open curly, variant={<extend>}, open curly, comma, inner variant={<amount>}, 
-		   close curly, close curly, close bracket]{LDR};
-		%
-		%\addcode[boolean, var={wback}, assign, false token, end line,
-		%		  boolean, var={postindex}, assign, false token, end line,
-		%         integer, var={scale}, assign, uint cast={size}, end line,
-		%		  if token, bit var=1 of option, equals, quoted={0}, then token, bad encoding, semicolon token, comment={sub-word index}, finish line,
-		%		  typed={ExtendType}, var={extend_type}, assign, call={DecodeRegExtend}, one arg={option}, end line,
-		%		  integer, var={shift}, assign, if token, var={S}, equals, quoted={1}, then token, var={scale}, else token, immediate={0}, end line]
-		%boolean wback = FALSE; 
-		%boolean postindex = FALSE; 
-		%integer scale = UInt(size); 
-		%if option<1> == '0' then UnallocatedEncoding(); // sub-word index 
-		%ExtendType extend_type = DecodeRegExtend(option); 
-		%integer shift = if S == '1' then scale else 0; 
-	%
-	%
-	\end{instruction}%
+\begin{instruction}{2. ADC, ADCS (register) [T1]}%
+ \addpart[bits=3, register] {Rdn};%
+ \addpart[bits=3, register] {Rm};%
+ \addpart[bits=10] {0, 1, 0, 0, 0, 0, 0, 1, 0, 1};%
+\newvariant{T1 variant}{}{};%
+\newmnemonics[open curly, operand={<q>}, close curly, open curly, operand={<Rdn>}, comma, close curly, operand={<c>}, operand={<Rdn>}, comma, operand={<Rm>}]{ADC};%
+\end{instruction}%
+
+
+
+%\begin{instruction}{1. ADC, ADCS (immediate) [A1]}%
+  %\headerstyle{16}
+  %\addpart[bits=12, opcode, color=yellow!50!green] {imm12};%
+  %\addpart[bits=4, register] {Rd};%
+  %\addpart[bits=4, register] {Rn};%
+  %\addpart[bits=1, named, color=red] {S};%
+  %\addpart[bits=7] {0, 0, 1, 0, 1, 0, 1};%
+  %\addpart[bits=4, opcode,  color=blue!40!yellow] {!=1111};%
+%\end{instruction}%
 %
 \end{tikzpicture}%
 }
