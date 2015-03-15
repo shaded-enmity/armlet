@@ -70,14 +70,18 @@ def main(argv):
         if filenames[1]:
             with open(filenames[1][0], 'a+') as outf:
                 outf.truncate()
-                outf.write('var InstructionData = [\n')
+                outf.write('{"InstructionData": [\n')
                 for engine in pump.engines.getEngines():
                     outf.write('{"name": "%s", "instructions": [\n' % str(engine.__class__.__name__))
                     for insn in engine.instructions:
                         outf.writelines(insn.serialize())
-                        outf.write(',\n')
-                    outf.write(']},\n')
-                outf.write(']\n')
+                        if insn != engine.instructions[-1]:
+                            outf.write(',\n')
+                    if engine != pump.engines.getEngines()[-1]:
+                        outf.write(']},\n')
+                    else:
+                        outf.write(']}')
+                outf.write(']}\n')
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))

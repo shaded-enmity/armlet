@@ -1,0 +1,35 @@
+// r0 = dst, r1 = src
+0x00004000 SUB	 r2, r0 #1	 //   | r2 = r0 - 1
+0x00004004 RSB	 r2, r1, r2 #0   //   | r2 -= r1
+0x00004008 LDRB	 r3, r1 #1       // .>| r3 = r1++
+0x0000400C CMP	 r3 #0           // | | // compare
+0x00004010 STRB	 r3, r1, r2 #0   // | | *(r1 + r2) = r3
+0x00004014 B.NE	 0x4008          //  `| if r3 != 0
+0x00004018 BX	 lr              //   | return
+
+From first argument, which is the *destination* pointer, is subtracted 1 in the first instruction,
+this is to compensate for the increment at 0x00004008 that would otherwise make the store at 0x00004010
+write at the offset of 1 byte. RSB computes a difference between the two pointers,
+providing us their *delta*, that in turn is used for *Base + Index* addressing.
+LDRB loads the byte at r1 in r3 and post-increments the register r1. CMP compares r3 to 0.
+STRB stores the byte in r3 into the location pointed to by the value of addition of r1 and r2.
+We established earlier that r1, the source register, is incremented during each iteration, and that
+r2 holds a *delta* or the *Index* value, when the base register is then adjusted by that index, we get 
+the correct offset into the *destination* pointer so that we copy the byte at the correct location.
+The following B branch has a `not equal` conditional, in reference to the r3 == 0 comparison, which
+if satisfied branches back to the LDRB instruction (-12 bytes, or -3 instructions), forming a loop.
+The trailing BX instructions causes an uncodintional jump to lr, the X in the instruction name means
+exchange, or in full "Branch and Exchange instruction set", which jumps to the given register and in this case switches
+from ARM to THUMB mode.
+
+The disassembly above (without the comments) was generated with `disas.py` command. Invoke it like this:
+
+```bash
+
+$ ./disas.py aarch32 all.json strcpy
+$ # full ellipsis of the command below:
+$ ./disas.py [aarch32|aarch64] instruction-data  to-disassemble
+```
+
+ *instruction-data* - JSON file with the output of the armLET CLI command
+ *to-disassemble*   - One opcode per line

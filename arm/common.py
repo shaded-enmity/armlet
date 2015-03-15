@@ -193,7 +193,10 @@ class EncodingVariant(utils.Test):
         self.bits.append(op)
 
     def addDecode(self, decode):
-        self.decode.append(decode)
+	if isinstance(decode, list):
+	    self.decode.extend(decode)
+	else:
+            self.decode.append(decode)
 
     def validate(self, context=None):
         if self.getCoverage() != self.getBitSize():
@@ -389,6 +392,46 @@ class Instruction(utils.Test):
 class JSONSerializer(object):
     def __init__(self):
         self.data = ''
+	self.mask_test = {}
+
+    def add_mask(self, mask, insn):
+	if mask in self.mask_test:
+	    if self.mask_test[mask] != insn.num_id:
+	        raise Exception('DUPLICATE MASK! %i %s %s ' % (mask, self.mask_test[mask], insn.num_id))
+	self.mask_test[mask] = insn.num_id
+
+    def deserialize_instruction(self, data):
+	" :type data: dict "
+	insn = Instruction()
+	isamatcher = utils.RegexMatcher('\((0x[a-fA-F0-9]+)\)')
+	insn.setHeader(data['id'], *data['names'])
+	insn.summary.extend(data['summary']['lines'])
+	insn.metadata['Operation'].extend(data['operation']['lines'])
+	insn.metadata['Syntax'].extend(data['symbols']['lines'])
+	insn.metadata['Decode'].extend(data['decode']['lines'])
+	for encoding in data['encodings']:
+            isamatcher.match(encoding['variant'])
+            isa = int(isamatcher.getMatched()[0][2:], 16)
+            variant = Variant(isa)
+            eva = EncodingVariant(isa, name=encoding['name'])
+            start = eva.getBitSize()
+            for bop in encoding['bits']:
+                eva.addOperand(BitOperand(bop['name'], start, bop['size'], bop['type']))
+                start -= bop['size']
+            mask = encoding['mask']
+            eva.mask = int(mask, 16)
+            eva.addDecode(encoding['decode'])
+            for m in encoding['mnemonics']:
+                mv = MnemonicsVariant(m['name'], Constraint(m['constraint']))
+                for sm in m['mnemonics']:
+                    cm = Mnemonics(sm['value'])
+                    for al in sm['aliases']:
+                        cm.addAlias(al['target'])
+                        cm.setConstraint(al['constraint'])
+                    mv.mnemonics.append(cm)
+                eva.mnemonics.append(mv)
+            insn.encodings.append(eva)
+	return insn
 
     def serialize_instruction(self, insn):
         " :type insn: Instruction "
@@ -405,7 +448,14 @@ class JSONSerializer(object):
 		        if y in ['1', '(1)']:
 			    pnum |= 1 << (ln - n)
 		    num |= pnum << counter
-		    
+		elif x.type == OperandType.CONDITION:
+		    if x.name.startswith('=='):
+			ln = len(x.name[2:])
+			for n, y in enumerate(x.name[2:]):
+			    if y in ['1', '(1)']:
+			        pnum |= 1 << (ln - n)
+			    num |= pnum << counter
+	    self.add_mask(num, insn)
             mnemonics = [{'name': mv.name, 'constraint': mv.constraint.string, 'mnemonics': [{'value': m.value, 'aliases': [{'target': a.value, 'constraint':a.constraint.string} for a in m.aliases]} for m in mv.mnemonics]} for mv in enc.mnemonics]
             encodings.append({'name': enc.getName(), 'variant': str(enc.isa), 
 		    'mnemonics': mnemonics, 'mask': '0x%08x'%num, 'decode': enc.decode, 'bits': [{'name': bc.name, 'size': bc.length, 'type': bc.type} for bc in enc.bits]
@@ -664,7 +714,7 @@ class Engine(object):
                 t = OperandType.REGISTER
             elif name.startswith('imm') or name == 'i':
                 t = OperandType.IMMEDIATE
-            elif name.startswith('!='):
+            elif name.startswith('!=') or name.startswith('=='):
                 t = OperandType.CONDITION
             elif len(name) < 3:
                 t = OperandType.OPERAND
