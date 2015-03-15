@@ -35,7 +35,7 @@ def Manifest():
     _N_project_descr = {'license': 'GNU/GPL 2.0', 'year': 2013,
       'author_ref': 'Pavel Odvody',
       'name': 'armLET CLI',
-      'arg_str': '[-f file] [-h | --help]',
+      'arg_str': '[-f file] [-o outfile] [-h | --help]',
       'usage_str': '',
       'space': 'armLET::cli',
       'logo': '''
@@ -51,6 +51,7 @@ def main(argv):
     filenames = utils.FileParser(argv, 'f', manifest)
     if filenames:
         ''' measure the time it takes '''
+
         with profiler.probe('file_read'):
             utils.Log('processing filename: %s', (filenames[0][0]),
                        manifest['space'], utils.LogCat.Section)
@@ -59,15 +60,16 @@ def main(argv):
                 pump = common.DataPump(filenames[0][0])
 
                 if pump.loadRawData():
-		    '''pump.registerEngines(ARM32Processor(), ARM32SystemProcessor(), 
-			ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())'''
-                    pump.registerEngines(ARM32Processor(), ARM32SIMDProcessor(), ARM64Processor(), ARM64SIMDProcessor())
-
+                    pump.registerEngines(ARM32Processor(), ARM32SIMDProcessor(), 
+				    ARM64Processor(), ARM64SIMDProcessor())
                     pump.execute(profiler)
+
         utils.Log('finished running in (%f seconds)', (profiler.getRuntime()),
                    manifest['space'], utils.LogCat.Leaf)
 
         if filenames[1]:
+	    ''' produce strictly valid JSON '''
+
             with open(filenames[1][0], 'a+') as outf:
                 outf.truncate()
                 outf.write('{"InstructionData": [\n')
