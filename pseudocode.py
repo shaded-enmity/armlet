@@ -23,15 +23,22 @@ import sys, math
          VAR-['Rd'] BITSTRING-['01']
      ENDSTMT-[]
 
+     ------------------ verify the AST now! --------------------
+
+     The concatenation should produce ('11':'01'):'0' -> '11010'
+      d = UInt('11010') = 26 (0x1A)
+
 """
 
 node = utils.Enum(INVALID=0, ENDSTMT=1, ASSIGN=1<<1, COMPARE=1<<2, CALL=1<<3, VAR=1<<4, IMMEDIATE=1<<5, BITSTRING=1<<6, TYPE=1<<7, CONCAT=1<<8)
 _node_names = [  'INVALID', 'ENDSTMT', 'ASSIGN',    'COMPARE',    'CALL',    'VAR',    'IMMEDIATE',    'BITSTRING',    'TYPE',    'CONCAT']
 
-token = utils.Enum(INVALID=0, LPAREN=1, RPAREN=1<<1, LANGLE=1<<2, RANGLE=1<<3, LSQUARE=1<<4, RSQUARE=1<<5,
+expression = utils.Enum(INVALID=0, PAREN=1, ANGLE=1<<1, CURLY=1<<2, BRACKET=1<<3)
+
+token = utils.Enum(WORD=0, LPAREN=1, RPAREN=1<<1, LANGLE=1<<2, RANGLE=1<<3, LSQUARE=1<<4, RSQUARE=1<<5,
         EQUALS=1<<6, COMMA=1<<7, DOT=1<<8, COL=1<<9, SCOL=1<<10, EXCLAM=1<<11, PIPE=1<<12, AND=1<<13, 
-        SQUOTE=1<<14, LCURLY=1<<15, RCURLY=1<<16, PLUS=1<<17, MINUS=1<<18, STAR=1<<19, CARET=1<<20, NEWLINE=1<<21)
-tokens = ['', '(', ')', '<', '>', '[', ']', '=', ',', '.', ':', ';', '!', '|', '&', '\'', '{', '}', '+', '-', '*', '^', '\n']
+        SQUOTE=1<<14, LCURLY=1<<15, RCURLY=1<<16, PLUS=1<<17, MINUS=1<<18, STAR=1<<19, CARET=1<<20, NEWLINE=1<<21, KEYWORD=1<<22)
+tokens = ['', '(', ')', '<', '>', '[', ']', '=', ',', '.', ':', ';', '!', '|', '&', '\'', '{', '}', '+', '-', '*', '^', '\n', '']
 
 keyword = utils.Enum(INVALID=0, IF=1, THEN=1<<1, ELSE=1<<2, ELSIF=1<<3, DIV=1<<4, EOR=1<<5, FOR=1<<6,
                      TO=1<<7, UNDEF=1<<8, UNPRED=1<<9, UNKNOWN=1<<10, CASE=1<<11, OF=1<<12, WHEN=1<<13,
@@ -52,6 +59,9 @@ class TypeVar(object):
         self.name = name
         self.value = value
 
+    def __repr__(self):
+        return "TypeVar({0}, {1})".format(self.name, self.value)
+
 class TypeDescriptor(object):
     def __init__(self, tclass, name, size=32, typevars=None):
         self.type_class = tclass
@@ -61,6 +71,9 @@ class TypeDescriptor(object):
 
     def clone_resized(self, newsize):
         return TypeDescriptor(self.type_class, self.name, newsize)
+
+    def __repr__(self):
+        return "TypeDescriptor(0x{0:08X}, {1}, {2})".format(self.type_class, self.name, self.size)
 
 class TypedExpression(object):
     def __init__(self, t, expr):
@@ -99,6 +112,7 @@ class VariableCache(object):
         self.cache[tv.name] = TypedExpression(td, tv)
 
     def get_variable(self, name):
+        " :rtype: TypedExpression "
         return self.cache[name] if name in self.cache else None
 
 _memop_vars = [TypeVar('MemOp_Load', 0), TypeVar('MemOp_Store', 1)]
@@ -117,6 +131,7 @@ class FunctionCache(object):
         self.cache[sig.name] = sig
 
     def lookup_func(self, name):
+        " :rtype: FunctionSignature "
         return self.cache[name] if name in self.cache else None
 
     def lookup_signature(self, name, args):
@@ -134,6 +149,72 @@ funcs = {}
 
 state = utils.Enum(DEFAULT=0, FCALL=1, TYPE=1<<1, ASSIGN=1<<2, CONCAT=1<<3)
 numbers = utils.RegexMatcher('^\d+$')
+
+_uint_fsig = FunctionSignature()
+_uint_fsig.set_return_type(TypeDescriptor(typeclass.INTEGER, ''))
+_uint_fsig.add_function_arg(types['bits'], 'bits')
+_uint_fsig.name = 'UInt'
+
+_functions, _variables = FunctionCache(), VariableCache()
+_functions.add_function(_uint_fsig)
+
+class _AstExpr(object):
+    def eval(self, context=None):
+        return None
+
+class _AstUnary(_AstExpr):
+    def get_operand(self):
+        return self.operand
+
+class _AstBinary(_AstExpr):
+    def left(self):
+        return self.left
+
+    def right(self):
+        return self.right
+
+class _AstValue(_AstUnary):
+    def __init__(self, node):
+        self.operand = node.data[0]
+        self.type = self._type_from_node(node)
+        self.name = ''
+
+    def _type_from_node(self, node):
+        return typeclass.BITSTRING
+
+class _AstAssign(_AstBinary):
+    def __init__(self, node):
+        self.left = node.children[0]
+        self.right = node.children[1]
+
+    def __repr__(self):
+        return "{0} = {1}".format(self.left.data[0], self.right.data[0])
+
+    def eval(self, context=None):
+        name = self.left.data[0]
+        if self.right.type == node.BITSTRING:
+            tv = TypeVar(name, self.right.data[0])
+            td = types['bits'].clone_resized(len(tv.value))
+            _variables.add_variable(tv, td)
+            print "{0}, {1}".format(tv, td)
+
+class _AstCall(_AstUnary):
+    def __init__(self, node):
+        self.operand = node.data[0]
+        self.args = node.children
+
+    def __repr__(self):
+        return "call: {0}".format(self.func)
+
+    def eval(self, context=None):
+        f = _functions.lookup_func(self.operand)
+        if len(self.args) == len(f.args):
+            for (n, (l, r)) in enumerate(zip(self.args, f.args.values())):
+                # same number of args, check types
+                if not (l.type == node.CONCAT and r.type == types['bits']):
+                    print 'E003: Invalid argument at {0} for {1}'.format(n, f.name)
+                    return
+            #print 'call to {0} succeeded'.format(f.name)
 
 class State(object):
     def __init__(self, state):
@@ -174,16 +255,22 @@ class StateManager(object):
         if len(self.peek_state().nodes) < len(types):
             return False
         return all([self.peek_state().nodes[-(i + 1)].type == t for i, t in enumerate(types)])
-            
 
 class Expression(object):
-    def __init__(self):
-        self.nodes = []
+    def __init__(self, node=None, type=None):
+        self.nodes = [node] if node else []
+        self.finished = False
+        self.type = type
 
     def add_node(self, node):
         self.nodes.append(node)
 
-    def get_rank(self, node):
+    def unary_type(self):
+        if len(self.nodes) > 1:
+            return None
+        return self.nodes[0].type
+
+    def get_rank(self):
         """ Rank is the amount of values that will be unpacked. As
           values in tuples are separated with comma ',' we just
           compute the number of commas in the expression and add 
@@ -193,7 +280,46 @@ class Expression(object):
 
           Here the rank of the left-hand side would be 3.
           """
-        return 1 + sum([int(n.type == token.COMMA) for n in self.nodes])
+        return 1 + sum([int(n.unary_type() == token.COMMA) for n in self.nodes])
+
+class TokenCollapser(object):
+    def __init__(self, left, right, exptype):
+        self.left  = left
+        self.right = right
+        self.exptype = exptype
+
+    def _begin_collapse(self, it):
+        expr, t = Expression(type=self.exptype), next(it)
+        try:
+            while True:
+                if t.unary_type() == self.left:
+                    expr.add_node(_begin_collapse(it))
+                expr.add_node(t)
+                t = next(it)
+                if t.unary_type() == self.right:
+                    expr.finished = True
+                    raise StopIteration()
+                elif t.unary_type() == token.SCOL:
+                    raise StopIteration()
+        except StopIteration:
+            if not expr.finished:
+                print 'E004: Unbalanced token pair: ({0}, {1})'.format(self.left, self.right)
+        return expr
+
+    def collapse(self, expr):
+        " :type exprt: Expression "
+        it = iter(expr.nodes)
+        e = Expression(type=self.exptype)
+        try:
+            while True:
+                node = next(it)
+                if node.unary_type() == self.left:
+                    e.add_node(self._begin_collapse(it))
+                else:
+                    e.add_node(node)
+        except StopIteration:
+            assert len(e.nodes) != 0
+        return e
 
 class Token(object):
     def __init__(self, value, _type):
@@ -332,7 +458,8 @@ def parse(stream):
                         if wb[0] == ' ' and wb[1] != ' ':
                             wb = wb[1:]
                     if wb != ' ':
-                        tokenq.add_token(wb, 0)
+                        tp = token.KEYWORD if wb in keywords else token.WORD
+                        tokenq.add_token(wb, tp)
                 tokenq.add_token(c, t)
                 #handle_word(wb, (t, c), wq)
                 wb = ''
@@ -344,12 +471,19 @@ def parse(stream):
         except StopIteration:
             break
 
+
+    exps = Expression()
+    toks = map(lambda x: Expression(x), tokenq.tokens)
+    exps.nodes.extend(toks)
+    c = TokenCollapser(token.LPAREN, token.RPAREN, expression.PAREN)
+    print c.collapse(exps).nodes
+
     funcs = {'UInt': AstNode(node.CALL)}
     tok, sm = None, StateManager()
     while True:
         try:
             tok = tokenq.next_token()
-            if tok.type == token.INVALID:
+            if tok.type == token.WORD:
                 if sm.compare_state(state.DEFAULT) or sm.compare_state(state.ASSIGN):
                     if tok.value in funcs:
                         sm.add_node(AstNode(node.CALL))
@@ -380,7 +514,7 @@ def parse(stream):
                 if sm.compare_state(state.FCALL):
                     pass
                 else:
-                    if tokenq.cursor == 1 or tokenq.tokens[tokenq.cursor].type != token.INVALID:
+                    if tokenq.cursor == 1 or tokenq.tokens[tokenq.cursor].type != token.WORD:
                         # if it's a first token or an outstanding lparen 
                         # we try to create a tuple
                         pass # but not now
@@ -391,7 +525,7 @@ def parse(stream):
                 if not sm.typecheck_nodes(node.VAR, node.BITSTRING) and not sm.typecheck_nodes(node.CONCAT):
                     sm.add_node(AstNode(node.BITSTRING))
                     nn = tokenq.peek_next()
-                    if nn.type == token.INVALID:
+                    if nn.type == token.WORD:
                         sm.add_data(nn.value)
                         tokenq.next_token()
                         if tokenq.peek_next().type != token.SQUOTE:
@@ -417,7 +551,7 @@ def parse(stream):
                             nr.data.append(tokenq.peek_next().value)
                             tokenq.tokens.remove(tokenq.right(2))
                             tokenq.next_token()
-                    elif nn.type == token.INVALID:
+                    elif nn.type == token.WORD:
                         nr.type = node.VAR
                         nr.data.append(nn.value)
                         #print 'token.COL: RHS - VARIABLE'
@@ -436,7 +570,7 @@ def parse(stream):
                             nr.data.append(tokenq.peek_next().value)
                             tokenq.tokens.remove(tokenq.right(2))
                             tokenq.next_token()
-                    elif nn.type == token.INVALID:
+                    elif nn.type == token.WORD:
                         nx.data.append(nn.value)
                     tokenq.next_token()
                 else:
@@ -451,8 +585,12 @@ def parse(stream):
                 print 'ERROR: Unfinished token stream ', tok.type
             break
 
-
     def walk_nodes(s, t):
+        if s.type == node.ASSIGN:
+            _AstAssign(s).eval()
+        elif s.type == node.CALL:
+            _AstCall(s).eval()
+
         if not t:
             print '%s-%s' % (_node_names[int(math.log(s.type, 2)) + 1], str(s.data))
         if s.children:
