@@ -1,0 +1,145 @@
+.insn-no-space {
+  margin: 0px;
+  padding: 0px;
+}
+
+.insn-border {
+  border: 1px solid #000000;
+}
+
+.insn-fill-x {
+  width: 100%;
+}
+
+.insn-height-30 {
+  height: 1.25em;
+  line-height: 1.25em;
+  vertical-align: middle;
+  text-align: center;
+  border-bottom: 1px solid #000000;
+  width: 100%;
+}
+
+.insn-height-70 {
+  height: 2.35em;
+  line-height: 2.75em;
+  vertical-align: middle;
+  text-align: center;
+  width: 100%;
+}
+
+.insn-block {
+  display: inline-block;
+  text-align: center;
+}
+
+.insn-part {
+  height: 4em;
+  width: 1.5em;
+  background-color: #fafafa;
+}
+
+.insn-no-sides {
+  border-right: 0px;
+  border-left: 0px;
+}
+
+.insn-no-right {
+  border-right: 0px;
+}
+
+.insn-no-left {
+  border-left: 0px;
+}
+
+.insn-filler {
+  line-height: 4px;
+  background-color: #efefef;
+}
+
+.insn-even-bit {
+  background-color: #fff;
+}
+
+.insn-odd-bit {
+  background-color: #ddd;
+}
+
+.insn-odd-register {
+  background-color: #adff2f;
+}
+
+.insn-even-register {
+  background-color: #9ee82b;
+}
+
+.insn-odd-opcode {
+  background-color: #9bd6ca;
+}
+
+.insn-even-opcode {
+  background-color: #aee6db;
+}
+
+.insn-block.height-30 {
+  background-color: #fafafa;
+}
+
+.insn-bottom-tick-container {
+  float: right;
+  left: 2px;
+  top: 4em;
+  display: inline;
+  position: relative;
+}
+
+.insn-bottom-tick {
+  width:1px;
+  height: 2px;
+  top: -3.5px;
+  position: relative;
+  background-color: #000;
+}
+
+.insn-middle-tick-container {
+  position: relative;
+  float: right;
+  left: 1px;
+  top: 1.44em;
+  display: inline;
+}
+
+.insn-middle-tick {
+  background-color: #000;
+  width:1px; height: 4px;
+  top: -2px;
+  position: relative;
+}
+
+.insn-top-tick-container {
+  background-color: #000;
+  float: right;
+  top: 0;
+  display: inline;
+  position: relative;
+}
+
+.insn-top-tick {
+  width:1px;
+  height: 2px;
+}
+
+.insn-block-label {
+  position: relative;
+  top: -2.4em;
+  text-align: center;
+  display: block;
+}
+
+.insn-instruction {
+  font-family: monospace;
+  font-size: 0.85em;
+  display: flex;
+  margin: 0;
+  padding: 0;
+}

@@ -1,132 +1,249 @@
 <html lang="en">
   <head>
   </head>
-  <link rel="stylesheet" href="//cdn.everything.io/kickstart/3.x/css/kickstart.min.css" />
-  <link href='//fonts.googleapis.com/css?family=Oxygen:400,700,300' rel='stylesheet' type='text/css'>
-  <link href='//fonts.googleapis.com/css?family=Cousine' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="http://cdn.everything.io/kickstart/3.x/css/kickstart.min.css" />
+  <link href='http://fonts.googleapis.com/css?family=Oxygen:400,700,300' rel='stylesheet' type='text/css'>
+  <link href='http://fonts.googleapis.com/css?family=Cousine' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="./insn.css">
   <style type="text/css">
-	.menu-item {
-		font-family: Oxygen; border: 1px solid #aaa; margin-bottom: 1px; cursor: hand
-	}
+		.menu-item {
+			font-family: Oxygen; border: 1px solid #aaa; margin-bottom: 1px; cursor: hand;
+		}
 
-	#nav-menu {
-		width: 20%; height: 100%; position: fixed; background-color: #ddd; overflow: auto; top: 30px
-	}
+		.submenu-item {
+			padding-left: 20px; cursor: hand;
+		}
 
-	body {
-		overflow-x: hidden;
-	}
+		#nav-menu {
+			width: 20%; height: 97%; position: fixed; background-color: #ddd; overflow: auto; top: 30px
+		}
 
-	li {
-		padding-left: 10px
-	}
+		body {
+			overflow-x: hidden;
+		}
 
-	ul {
-		margin-bottom: 0;
-	}
+		li {
+			padding-left: 10px
+		}
+
+		ul {
+			margin-bottom: 0;
+		}
+
+		#header {
+			background-color: #111;
+			color: #aaa;
+			padding: 1px 7px;
+			font-weight: 300;
+			font-size: 14px;
+			height: 30px;
+			width: 100%;
+			z-index: 1;
+			position: fixed;
+		}
+
+		.bold-blue {
+			color: #238ad4;
+			font-weight: 600
+		}
+
+		#container {
+			position: relative;
+			width: 80%;
+			left: 20%;
+			margin-left: 10px;
+			font-family: Oxygen;
+			top: 30px;
+		}
+
+		#toc {
+			width: 15%;
+			position: fixed;
+			border-radius: 4px;
+			box-shadow: 1px 1px 1px #888;
+			top: 6%;
+			right: 1%;
+			background-color: #ddd;
+		}
+
+		#toc > p {
+			border-bottom: 1px solid #666;
+			margin: 0px 6px;
+		}
+
+		#toc > .container {
+			padding: 10px 0px;
+			margin: 10px 0px;
+			background-color: #ddd;
+			border: 0px;
+		}
+
+		#summary {
+			margin-top: 0;
+		}
+
+		#summary-text {
+			white-space: pre-wrap;
+			font-size: 12px;
+		}
+
+		.tags > span {
+			padding: 2px 4px; 
+			color: white; 
+			font-weight: bold; 
+			font-family: monospace;
+		}
+
+		.red-bg {
+			background-color: #aa0022; 
+		}
+
+		.green-bg {
+			background-color: #11aa11;
+		}
+
+		.blue-bg {
+			background-color: #0000aa;
+		}
+
+		.regular {
+			font-size: 12px;
+		}
+
+		.symbols {
+			font-size: 12px; 
+			white-space: pre-wrap; 
+			font-family: monospace;
+		}
+
+		h5 > span {
+			color: #888;
+		}
   </style>
  <body>
- <div style="background-color: #111; color: #aaa; padding: 1px 7px; position: fixed; font-weight: 300; font-size: 14px; height: 30px; width: 100%; z-index: 1">Ω CODEX<span style="color: #238ad4; font-weight: 600">ARMLET</span></div>
+ <div id="header">Ω CODEX<span class="bold-blue">ARMLET</span></div>
     <div id="content">
 	    <div id="nav-menu"></div>
-	    <div style="position: relative; width: 80%; left: 20%; margin-left: 10px; font-family: Oxygen; top: 30px;" id="c"></div>
+	    <div id="container"></div>
     </div>
-    <script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
-    <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
-    <script type="text/javascript" src="//cdn.everything.io/kickstart/3.x/js/kickstart.min.js"></script>
-    <script src="./all.json"></script> 
+    <script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+    <script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    <script type="text/javascript" src="http://cdn.everything.io/kickstart/3.x/js/kickstart.min.js"></script>
+    <script src="./insn.js"></script>
+    <script src="./all.json"></script>
     <script type="text/javascript">
-   	$( document ).ready(function() {
-		var htmlEncode = function( value ) {
-			return $('<div/>').text(value).html();
-		};
+   	$( document ).ready(() => {
 
-		var instruction_click_handler = function( insn, domNode ) {
-			console.log(insn);
-			$('#c').empty();
-			//console.log(domNode);
-			$('#c').append("<div style='width: 15%; position: fixed; border-radius: 4px; box-shadow: 1px 1px 1px #888; top: 3%; right: 1%; background-color: #ddd;' id='toc'><p align='center' style='border-bottom: 1px solid #666; margin: 0px 6px'><b>Table of Contents</b></p><span style='padding: 10px 0px; margin: 10px 0px'><li><a href='#summary'>SUMMARY</a></li><li><a href='#encodings'>ENCODINGS</a></li><ul id='encli'></ul><li><a href='#operation'>OPERATION</a></li><li><a href='#symbols'>SYMBOLS</a></li></span></div>");
+			var htmlEncode = (value) => {
+				return $('<div/>').text(value).html();
+			};
 
-			// 1. HEADING
-			$('#c').append("<h2 style='margin-top: 0' id='summary'>" + domNode.text() + "</h2>");
-			$('#c').append("<div style='white-space: pre-wrap; font-size: 12px'>" + insn.summary.lines.join("\n") + "</div>");
+			var instruction_click_handler = function(insn, domNode) {
+				const type_map = [PART_TYPE_OPCODE, PART_TYPE_REGISTER, PART_TYPE_OPCODE,
+										  		PART_TYPE_OPCODE, PART_TYPE_OPCODE, PART_TYPE_BITS];
+				let container = $('#container');
+				let i = insn;
 
-			// 2. ENCODING
-			$('#c').append("<h3 id='encodings'>ENCODINGS</h3>");
-			$(insn.encodings).each(function( index ) {
-				var self = this;
-				// 2.1 BIT HEADER
-				var counter = this.variant.indexOf("Bits16") > -1 ? 16 : 32;
-				var specialCounter = this.variant.indexOf("Thumb") > -1 && counter == 32;
-				$('#c').append("<div style='font-size: 12px' id='"+this.name+"-lab'><span style='padding: 2px 4px; background-color: #aa0022; color: white; font-weigh: bold; font-family: monospace'>" + this.name + "</span> <span style='padding: 2px 4px; background-color: #11aa11; color: white; font-weigh: bold; font-family: monospace'>"+ this.variant +"</span> <span style='padding: 2px 4px; background-color: #0000aa; color: white; font-weigh: bold; font-family: monospace'>Bitmask: "+this.mask+"</span></div>");
-				$('#encli').append("<li><a href='#"+ this.name +"-lab'>"+ this.name +"</a></li>");
-				$('#c').append("<div id='"+ this.name +"'></div>");
-				$('#c').append("<div id='"+ this.name +"-components'></div>");
-				$(this.bits).each(function( index ) {
-					for( var i = 0; i < this.size; i++ ) {
-						print = specialCounter ? (counter > 16 ? counter-16:counter) : counter ;
-						print = this.type == 5 ? print : ( i == 0 || (i == this.size - 1) ? print : "&nbsp;" );
-						$('#'+self.name).append("<span style='background-color: #aaa; display: inline-block; text-align: center; font-family: monospace; width: 30px;'>" + print + "</span>");
-						--counter;
+				container.empty();
+				container.append(`<div id='toc'>
+														<p align='center'>
+															<b>Table of Contents</b>
+														</p>
+														<span class='container'>
+															<li><a href='#summary'>SUMMARY</a></li>
+															<li><a href='#encodings'>ENCODINGS</a></li>
+															<ul id='encli'></ul>
+															<li><a href='#operation'>OPERATION</a></li>
+															<li><a href='#symbols'>SYMBOLS</a></li>
+														</span>
+													</div>`);
+
+				// 1. HEADING
+				container.append(`<h2 id='summary'>${domNode.text()}</h2>`);
+				container.append(`<div id='summary-text'>${insn.summary.lines.join("\n")}</div>`);
+
+				// 2. ENCODING
+				container.append("<h3 id='encodings'>ENCODINGS</h3>");
+				$(insn.encodings).each(function(index) {
+					let self = this;
+					// 2.1 BIT HEADER
+					container.append(`<div id='${self.name}-lab' class='regular tags'>
+															<span class='red-bg'>${self.name}</span> 
+															<span class='green-bg'>${self.variant}</span> 
+															<span class='blue-bg'>Bitmask: ${self.mask}</span>
+														</div>`);
+					$('#encli').append(`<li><a href='#${self.name}-lab'>${self.name}</a></li>`);
+					container.append(`<div id='${self.name}'></div>`);
+					container.append(`<div id='${self.name}-components' class='insn-instruction'></div>`);
+					var parts = [];
+					for (var b = (self.bits.length - 1); b >= 0; b--) {
+						/* all bit components of the encoding */
+						var part = self.bits[b];
+						var name = part.name;
+						/* immediate bits are stored as strings, parse them now */
+						if (part.type == 5) {
+							name = name.split(" ").map((val) => { return val.replace('(', '') .replace(')', '') });
+						}
+						/* add instruction part to the array of parts */
+						parts.push(new InstructionPart(type_map[part.type], part.size, name));
 					}
 
-					$('#'+self.name+'-components').append("<span style='background-color: #ccc; font-size: 12px; color: #555; font-weight: bold; display: inline-block; text-align: center; font-family: monospace; border-right: 1px solid #999; height: 36px; padding-top: 6px; width: "+this.size*30+"px'>"+this.name+"</span>");
+					/* instantiate instruction, set hextet flag if it's a
+					   Thumb instruction and render it */
+					const is_thumb = self.variant.indexOf('Thumb') > -1;
+					const insn = new Instruction(parts, is_thumb);
+					insn.render($(`#${self.name}-components`));
+
+					// 2.2 MNEMONICS
+					$(self.mnemonics).each(function(index) {
+							container.append(`<h5>${this.name}<span>${this.constraint}</span></h5>`);
+							$(this.mnemonics).each(function(index) { container.append(`<div class='regular'>${htmlEncode(this.value)}</div>`); });
+					});
+					container.append(`<div class='regular'><pre>${htmlEncode(self.decode.join("\n"))}</pre></div>`);
+					container.append("<hr />");
 				});
 
-				$('#' + self.name + '-components span:last-child').css({"border": "0"});
+				// 3. OPERATION
+				container.append("<h3 id='operation'>OPERATION</h3>");
+				container.append(`<divclass='regular'><pre>${htmlEncode(insn.operation.lines.join("\n"))}</pre></div>`);
 
-				// 2.2 MNEMONICS
-				$(this.mnemonics).each(function( index ) {
-						$('#c').append("<h5>"+ this.name +"<span style='color: #888'>" + this.constraint + "</span></h5>");
-						$(this.mnemonics).each(function( index ) { $('#c').append("<div style='font-size: 12px'>" + htmlEncode(this.value) + "</div>"); });
-				});
-				$('#c').append("<div style='font-size: 12px'><pre>" + htmlEncode(self.decode.join("\n"))  + "</pre></div>");
-				$('#c').append("<hr />");
-			});
+				// 4. SYMBOLS
+				container.append("<h3 id='symbols'>SYMBOLS</h3>");
+				container.append(`<div class='symbols'>${htmlEncode(insn.symbols.lines.join("\n"))}</div>`);
+			};
 
-			// 3. OPERATION
-			$('#c').append("<h3 id='operation'>OPERATION</h3>");
-			$('#c').append("<div style='font-size: 12px'><pre>" + htmlEncode(insn.operation.lines.join("\n"))  + "</pre></div>");
-
-			// 4. SYMBOLS
-			$('#c').append("<h3 id='symbols'>SYMBOLS</h3>");
-			$('#c').append("<div style='font-size: 12px; white-space: pre-wrap; font-family: monospace'>" + htmlEncode(insn.symbols.lines.join("\n"))  + "</div>");
-		};
-			
-		var processor_click_handler = function( node, domNode ) {
-			var quit = $('#active').prev()[0] == domNode[0];
-			$('#active').remove();
-			if( quit ) {
-				return;
-			}
-			domNode.after("<div id='active'></div>");
-
-			$(node.instructions).each(function( index ){
-				var self = this;
-				var name = this.names[0]
-				if( this.names.length == 2 && this.names[1] != "" ) {
-					if( this.names[1].indexOf("(") != 0 ) {
-						name += ", " + this.names[1];
-					} else {
-						name += " " + this.names[1];
-					}
+			var processor_click_handler = (node, domNode) => {
+				var quit = $('#active').prev()[0] == domNode[0];
+				$('#active').remove();
+				if( quit ) {
+					return;
 				}
-				$('#active').append("<div style='padding-left: 20px; cursor: hand'>"+this.id+". "+name+"</div>");
-				$('#active div:last-child').click(function() {
-					instruction_click_handler(self, $(this));
+				domNode.after("<div id='active'></div>");
+
+				$(node.instructions).each(function(index) {
+					var self = this;
+					var name = this.names[0]
+					if( this.names.length == 2 && this.names[1] != "" ) {
+						if( this.names[1].indexOf("(") != 0 ) {
+							name += ", " + this.names[1];
+						} else {
+							name += " " + this.names[1];
+						}
+					}
+					$('#active').append(`<div class='submenu-item'>${this.id}. ${name}</div>`);
+					$('#active div:last-child').click(function() {
+						instruction_click_handler(self, $(this));
+					});
+				});
+			};
+
+			$(InstructionData).each(function(index) {
+				var self = this;
+				$("#nav-menu").append(`<div class='menu-item'>${self.name}</div>`);
+				$('#nav-menu div:last-child').click(function() {
+					processor_click_handler(self, $(this));
 				});
 			});
-		};
-
-		$(InstructionData).each(function( index ) {
-			var self = this;
-
-			$("#nav-menu").append("<div class='menu-item'>"+ self.name +"</div>");
-
-			$('#nav-menu div:last-child').click(function(){ 
-				processor_click_handler(self, $(this)); 
-			});
-		});
    	});
     </script>
     </body>
