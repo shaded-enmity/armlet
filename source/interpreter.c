@@ -9,7 +9,7 @@
 #include "utils/hashtable.h"
 #include "utils/string.h"
 
-#include <gmp-aarch64.h>
+#include <gmp.h>
 #include <libgen.h>
 #include <math.h>
 #include <stdarg.h>

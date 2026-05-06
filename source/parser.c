@@ -11,7 +11,7 @@
 #include <ctype.h>
 #include <libgen.h>
 #include <unistd.h>
-#include <gmp-aarch64.h>
+#include <gmp.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
