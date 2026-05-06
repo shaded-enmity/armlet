@@ -479,6 +479,39 @@ int armlet_bitvector_equal_wildcard(const armlet_bitvector *a,
 #endif
 }
 
+
+static void armlet_bitvector_and_preserve_scalar(armlet_bitvector *dst,
+                                                 const armlet_bitvector *a,
+                                                 const armlet_bitvector *b) {
+  assert(dst && a && b && dst->nbits == a->nbits && a->nbits == b->nbits);
+  size_t n = a->nwords;
+  for (size_t i = 0; i < n; ++i) {
+    uint64_t Da = a->data[i], Ka = a->known[i];
+    uint64_t Db = b->data[i], Kb = b->known[i];
+    uint64_t known = Ka & Kb;
+    uint64_t data = (Da & Db) & known;
+    dst->known[i] = known;
+    dst->data[i] = data;
+  }
+  armlet_bitvector_mask_last(dst, dst->data, dst->known);
+}
+
+static void armlet_bitvector_or_preserve_scalar(armlet_bitvector *dst,
+                                                const armlet_bitvector *a,
+                                                const armlet_bitvector *b) {
+  assert(dst && a && b && dst->nbits == a->nbits && a->nbits == b->nbits);
+  size_t n = a->nwords;
+  for (size_t i = 0; i < n; ++i) {
+    uint64_t Da = a->data[i], Ka = a->known[i];
+    uint64_t Db = b->data[i], Kb = b->known[i];
+    uint64_t known = Ka & Kb;
+    uint64_t data = ((Da | Db) & known);
+    dst->known[i] = known;
+    dst->data[i] = data;
+  }
+  armlet_bitvector_mask_last(dst, dst->data, dst->known);
+}
+
 #ifdef __AVX2__
 static void armlet_bitvector_and_preserve_avx2(
     uint64_t *dst_data, uint64_t *dst_known, const uint64_t *Da_ptr,
