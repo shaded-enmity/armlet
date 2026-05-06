@@ -1,0 +1,39 @@
+// Array defined inside a custome type
+type Axx is (
+  integer y,
+  array[0..4] of bits(3) Xs,
+  boolean z,
+  bit O,
+  bit P,
+);
+
+// Array as a local variable
+array bits(4) Ps[0..31];
+array bits(2) Regs.X[0..2];
+
+// Simple array setting
+Ps[1] = 'x11x';
+Ps[30] = Ps[1];
+Ps[31] = '0xx0';
+
+// Array access and bit slice assignment
+Ps[0]<1:0> = 'x1';
+
+Axx s;
+// Array set inside a structure
+s.Xs[0] = '1x1';
+// Array and bit slice set inside a structure
+s.Xs[1]<0> = 'x';
+s.Xs[4] = '101';
+
+a = '00000000';
+
+// Offset + size bit slice setting
+a<2+:4> = '1xx1'<3:0>;
+
+// Array inside tuple and struct bit slurp
+(Ps[10], s.<O,P>) = ('0110', 'x1');
+
+Regs.X[0] = 'x1';
+
+print(Ps, a, s, Regs.X);

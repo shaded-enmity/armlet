@@ -1,0 +1,3 @@
+v = bits(4) IMPLEMENTATION_DEFINED "Magic Bitstring V1";
+
+print(v);

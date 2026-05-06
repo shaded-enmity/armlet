@@ -1,0 +1,7 @@
+bits(M*N) Utils.Repeat(bits(M) val, integer N)
+  bits(M*N) value;
+  for I=0 to N-1
+    value<(I*M)+:M> = val;
+  return value;
+
+constant bits(4) Utils.SecretPattern = '1x10';

@@ -1,0 +1,17 @@
+type Foo is (
+  bits(5) Fa,
+  real Fb,
+  integer Fc,
+  bit Ff
+)
+
+a = bits(64) UNKNOWN;
+r = real UNKNOWN;
+i = integer UNKNOWN;
+
+f = Foo UNKNOWN;
+
+serialize("f.bin", f);
+
+print(a, r, i, f);
+

@@ -1,0 +1,15 @@
+type Foo is (
+  integer x,
+  bits(2) a,
+  real f
+)
+
+Foo z;
+z.x = 123;
+z.a = 'xx';
+z.f = 0.123;
+
+serialize("value.bin", z);
+b = deserialize("value.bin");
+
+print(z, b);

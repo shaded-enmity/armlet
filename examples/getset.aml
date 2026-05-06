@@ -1,0 +1,33 @@
+bits(12) _B = '11111111x1x1';
+
+// Getter without [] notation
+bits(1) Aloha
+  return _B<3>;
+
+// Getter with [] notation
+bits(1) Moha[]
+  return _B<2>;
+
+// Setter with no arguments
+Moha[] = bits(1) val
+  _B<2> = val;
+
+// Getter with two arguments
+bits(4) GetSet[integer x, integer y]
+  return _B<(x*y)+:4>;
+
+// Setter with one argument
+GetSet[integer x] = bits(N) val
+  _B<x+:N> = val;
+
+A = GetSet[1, 1];
+
+GetSet[1] = '0xx0';
+
+C = Moha[];
+Moha[] = '1';
+D = Moha[];
+
+F = Aloha;
+
+print(A, _B, C, D, F);

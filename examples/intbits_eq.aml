@@ -1,0 +1,21 @@
+// T_INTEGER vs T_BITS comparisons
+bits(4) a = '0101';
+
+print(a == 5);    // true: 0101 = 5
+print(5 == a);    // true: symmetric
+print(a == 6);    // false
+print(a == 21);   // false: 21 needs 5 bits, size mismatch
+
+bits(4) b = '1111';
+print(b == -1);   // true: -1 in 4-bit two's complement = 1111
+print(-1 == b);   // true: symmetric
+
+// neq
+print(a != 5);    // false
+print(a != 6);    // true
+
+// wildcard handling: 'x' bits should still match any int
+bits(4) c = 'x101';
+print(c == 5);    // true: 0101 matches x101
+print(c == 13);   // true: 1101 matches x101
+print(c == 4);    // false: 0100 vs x101 -> last bit diff

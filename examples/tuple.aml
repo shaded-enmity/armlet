@@ -1,0 +1,13 @@
+bits(1) x;
+bits(1) y;
+bits(1) z;
+bits(2) f;
+bits(2) g;
+
+// definition and bitslurp and ignored value
+(a,b,<x,y,z>,-) = (1, TRUE, '1x0', 123);
+
+// into a bitslice
+(f<0>, g<1>) = ('1', 'x');
+
+print(f, g, x, y, z);

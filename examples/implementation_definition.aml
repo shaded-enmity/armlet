@@ -1,0 +1,9 @@
+a = 1;
+b = '1100';
+c = '1x0';
+
+begin_implementation_defined("m1.bin");
+implementation_defined("Some Value", a);
+implementation_defined("Magic Bitstring V1", b);
+implementation_defined("Less Magic Bistring V2", c);
+end_implementation_defined();

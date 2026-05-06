@@ -1,0 +1,54 @@
+import "stdlib/numeric";
+import "stdlib/bits";
+import "stdlib/shifts";
+import "stdlib/defs";
+
+bitlayout AddShiftedRegister is (
+  sf : 1,
+  '0001011',
+  shift : 2,
+  '0',
+  Rm : 5,
+  imm6 : 6,
+  Rn : 5,
+  Rd : 5,
+);
+
+type Instruction = bits(32);
+
+ASRExample()
+  // if 0x8b438084 == AddShiftedRegister then
+  //  print("Matched!");
+  //  4388a0:	8b438084 	add	x4, x4, x3, lsr #32
+  Instruction ParsedAdd = AddShiftedRegister(0x8b438084);
+
+  use ParsedAdd;
+
+  if shift == '11' then EndOfDecode(Decode_UNDEF);
+  if sf == '0' && imm6<5> == '1' then EndOfDecode(Decode_UNDEF);
+
+  constant integer d = UInt(Rd);
+  constant integer n = UInt(Rn);
+  constant integer m = UInt(Rm);
+
+  constant integer datasize = 32 << UInt(sf);
+  constant integer shift_amount = UInt(imm6);
+  constant ShiftType shift_type = DecodeShift(shift);
+
+  X[n, datasize] = 2<63:0>;
+  X[m, datasize] = (2 << shift_amount)<63:0>;
+
+  constant bits(datasize) operand1 = X[n, datasize];
+  constant bits(datasize) operand2 = ShiftReg(
+    m, shift_type, shift_amount, datasize
+  );
+
+  bits(datasize) result;
+  (result,-) = AddWithCarry(operand1, operand2, '0');
+
+  X[d, datasize] = result;
+  R = UInt(X[d, datasize]);
+
+  inspect(R);
+
+ASRExample();

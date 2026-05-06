@@ -1,0 +1,29 @@
+// Constant variable n and set it
+constant integer n = 16;
+
+// Bits with fixed size
+bits(5) d = '10101';
+
+// Bits with dynamic size
+bits(n*2) c;
+
+// Bits with spaces
+b = '1 0 0 1';
+
+// Concantenated bits with x/X wildcards
+a = '10x':b:'X01';
+
+// Complex bit slice
+c<(n*2)-1,7,4:0> = '1x1x1x1';
+
+// Assignment from a bit slice
+x = a<6,2:0>;
+
+y = '000';
+// Bit slice to a bit slice
+y<1> = d<0>;
+
+// blowup
+// n = 14;
+
+print(n, d, c, b, a, x, y);

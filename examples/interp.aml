@@ -1,0 +1,6 @@
+integer test = 69;
+bits(4) string = '1xx1';
+
+boolean F.X = (1, 0) >= (1, 0);
+
+print("this is a [{test}] of \"{string}\" \\ interpolation = {F.X}");

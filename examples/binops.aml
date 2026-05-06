@@ -1,0 +1,37 @@
+bits(3) a = '100';
+bits(3) b = '101';
+
+xored = a EOR b;
+anded = a AND b;
+ored  = a OR b;
+
+s1_true = TRUE && TRUE;
+s1_false = TRUE && FALSE;
+s2_true = FALSE || TRUE;
+s2_false = FALSE || FALSE;
+s3_true = FALSE EOR TRUE;
+s3_false = TRUE EOR TRUE;
+
+n_ten = 3 * 2 + 4;
+n_five = 15 DIV 3;
+
+n_pow_1000 = n_ten ^ 3;
+
+n_s_512 = 1 << 9;
+
+n_s_256 = n_s_512 >> 1;
+
+f_pi = 1.0 + 2.14;
+f_tau = f_pi * 2.0;
+
+f_tau_sq = f_tau ^ 2;
+
+f_cast_985 = (Real(n_ten) * f_pi) ^ 2;
+
+print(
+  a, b,
+  xored, anded, ored,
+  s1_true, s1_false, s2_true, s2_false, s3_true, s3_false,
+  n_ten, n_five, n_pow_1000, n_s_512, n_s_256,
+  f_pi, f_tau, f_tau_sq, f_cast_985
+);

@@ -1,0 +1,44 @@
+// enum definition
+enumeration MyEnum { MyEnum_First,
+  MyEnum_Second, MyEnum_Third
+  };
+
+// type definition
+type Foo is (
+  integer n,
+  bits(4) zx,
+  boolean a,
+  boolean b,
+  boolean c,
+  boolean z,
+  bits(2) sp,
+  integer long_field,
+);
+
+bit Aa, Bb, Cc;
+
+Foo zz;
+zz.zx = 'x11x';
+
+// Types can be instantiated by name with varying
+// number of arguments in the order of definition
+// and the rest is zero set
+Foo x = Foo(4, '1001', TRUE);
+x.b = TRUE;
+x.sp = 'xx';
+
+// Assign enum value
+bar = MyEnum_Third;
+
+// presence in a set
+sets = 11 IN {1, 2, 4, 8};
+// presence in a set by a wildcard match
+another = '1110' IN {'0000', '1111', '11x0'};
+
+// bitslurp
+zz.<zx,sp> = 'xxxx11';
+
+// field selection concatenation
+bits(7) a = '0':zz.<sp,zx>;
+
+print(bar, sets, another, x, zz, a);

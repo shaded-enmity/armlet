@@ -1,0 +1,17 @@
+integer neg = -1;
+
+real flt = -3.14;
+
+boolean im = !TRUE;
+
+bits(128) large = 0x7d0c2155631469e126d677ba7e04b17<127:0>;
+
+large_int = 0x7d0c2155631469e126d677ba7e04b17;
+
+vv = 1;
+xx = 1 >= vv;
+
+real fdiv = 10.0 / 2.0;
+integer idiv = 10 DIV 2;
+
+print(neg, flt, im, large, large_int, vv, xx, fdiv, idiv);

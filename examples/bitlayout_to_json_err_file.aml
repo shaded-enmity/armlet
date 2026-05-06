@@ -1,0 +1,12 @@
+bitlayout AddShiftedRegister is (
+  sf : 1,
+  '0001011',
+  shift : 2,
+  '0',
+  Rm : 5,
+  imm6 : 6,
+  Rn : 5,
+  Rd : 5,
+);
+
+bitlayout_to_json(AddShiftedRegister, "/no/such/dir/x.json");

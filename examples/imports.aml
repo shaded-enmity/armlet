@@ -1,0 +1,5 @@
+import "utils";
+
+r = Utils.Repeat('011xx110', 4);
+
+print(r, Utils.SecretPattern);

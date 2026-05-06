@@ -1,0 +1,21 @@
+// Return '1' with a backtrace
+bits(1) One()
+  backtrace();
+  return '1';
+
+// Complex return type contract + namespaced
+bits(N+M+X) A.Concat(bits(N) a, bits(M) b, integer X)
+    return a:b:'11';
+
+// Complex tuple return type contract
+(bits(2*N), bits(N)) Test(bits(N) a)
+    return (One():One():'00','xx');
+
+x = A.Concat('11', '00', 2);
+(u, v) = Test('11');
+
+one = One();
+
+assert one == One();
+
+print(x, u, v, A.Concat, one, One, Test);

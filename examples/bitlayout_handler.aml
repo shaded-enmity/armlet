@@ -1,0 +1,48 @@
+import "stdlib/numeric";
+import "stdlib/bits";
+import "stdlib/shifts";
+import "stdlib/defs";
+
+bitlayout AddShiftedRegister is (
+  sf:1,
+  '0001011',
+  shift:2,
+  '0',
+  Rm:5,
+  imm6:6,
+  Rn:5,
+  Rd:5,
+) then do input
+  print("Dispatching AddShiftedRegister with input: {input}");
+
+  if shift == '11' then EndOfDecode(Decode_UNDEF);
+  if sf == '0' && imm6<5> == '1' then EndOfDecode(Decode_UNDEF);
+
+  constant integer d = UInt(Rd);
+  constant integer n = UInt(Rn);
+  constant integer m = UInt(Rm);
+
+  constant integer datasize = 32 << UInt(sf);
+  constant integer shift_amount = UInt(imm6);
+  constant ShiftType shift_type = DecodeShift(shift);
+
+  X[n, datasize] = 2<63:0>;
+  X[m, datasize] = (2 << shift_amount)<63:0>;
+
+  constant bits(datasize) operand1 = X[n, datasize];
+  constant bits(datasize) operand2 = ShiftReg(
+    m, shift_type, shift_amount, datasize
+  );
+
+  bits(datasize) result;
+  (result, -) = AddWithCarry(operand1, operand2, '0');
+
+  X[d, datasize] = result;
+
+  print(UInt(X[d, datasize]));
+
+
+// 4388a0:	8b438084 	add	x4, x4, x3, lsr #32
+// 1 0001011 01 0 00011 100000 00100 00100
+//   ~~~~~~~    ~
+dispatch(0x8b438084);

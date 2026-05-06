@@ -1,0 +1,17 @@
+// polymorphic Test function taking a real
+real Test(real y)
+  return y + 420.0;
+
+// polymorphic Test function taking an integer
+integer Test(integer x)
+  return x + 69;
+
+a = Test(0);
+b = Test(0.0);
+
+x = Test(1);
+y = Test(1.0);
+
+print(a, b, x, y);
+
+print("Polys: {Test}");

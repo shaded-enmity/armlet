@@ -1,0 +1,23 @@
+// Alias of an integer
+type MyInt = integer;
+
+// Bits alias with fixed size
+type TwoBit = bits(2);
+
+// Nested tuple alias also using the other aliases
+// Note that tuple aliases are only valid in the context
+// of function returns
+type Nested = (
+  TwoBit, (bits(3), (TwoBit, MyInt))
+);
+
+Nested Foo(bits(1) x, bit y)
+  return (x:y, ('1x1', (y:x, 69)));
+
+MyInt foo = 1;
+
+bit u, v;
+
+(<u, v>, (b, (c, d))) = Foo('1', '0');
+
+print(foo, MyInt, u, v, b, c, d, Nested);

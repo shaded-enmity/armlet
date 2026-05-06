@@ -1,0 +1,29 @@
+c = 5;
+b = '10';
+bits(3) x;
+bits(2) y;
+
+// Nested inline ifs
+a = if b<1> == '1' then (if b<0> == '0' then 2 else 1) else 0;
+
+// Inline if-elsif-else condition
+d = if c == 1 then '1' elsif c == 5 then 'x' else '0';
+
+// Block if-elsif-else
+if c == 1 then
+  x = '111';
+elsif c == 2 then
+  x = '001';
+elsif c == 3 then
+  x = '101';
+else
+  x = 'xxx';
+
+// Case switch
+case x of
+  when '010'
+    y = '11';
+  when '001' y = '1x';
+  otherwise y = '01';
+
+print(a, x, y, d);

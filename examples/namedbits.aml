@@ -1,0 +1,32 @@
+bits(12) MYBITS = '00000000xx11';
+
+// There's no canonical syntax for setting
+// named bits so we use a simple builtin function
+set_bits_range_name(MYBITS, "FP", 0, 1);
+set_bits_range_name(MYBITS, "SP", 2, 3);
+set_bits_range_name(MYBITS, "xD", 4, 6);
+set_bits_range_name(MYBITS, "LL", 11);
+
+// TODO: Maybe do it like this?
+// named_bits_literal: $ => seq('<', commaSep1($.expression), '>')
+// assignment: $ => seq($.lhs, '=', choice($.expression, $.named_bits_literal), ';')
+// MYBITS.FP = <1, 0>;
+// MYBITS.SP = <3, 2>;
+// MYBITS.xD = <6, 4>;
+// MYBITS.LL = <11>;
+// This way we can have rich bit-select expression allowing for constructs such as:
+// MYBITS.xDSP = <6:4, 1:0>;
+
+// Named bitslice selection
+bits(2) fp = MYBITS.FP;
+bits(2) sp = MYBITS.SP;
+
+bit old_ll = MYBITS.LL;
+
+// Named bitslice assignment
+MYBITS.LL = '1';
+MYBITS.xD = '1x1';
+
+bit last = MYBITS.LL;
+
+print(fp, sp, MYBITS, last, old_ll);

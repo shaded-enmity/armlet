@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Bitlayout viewer</title>
+  <link rel="stylesheet" href="bitlayout.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #ddd;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 16px;
+      font-weight: 500;
+      margin: 0 0 16px;
+      color: #aaa;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    .panel {
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 12px;
+    }
+    .panel h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 0 0 8px;
+      color: #888;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .panel-header h2 { margin: 0; }
+    .theme-picker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .theme-picker select,
+    .theme-picker button {
+      background: #111;
+      color: #cfe;
+      border: 1px solid #333;
+      border-radius: 3px;
+      padding: 4px 8px;
+      font-family: inherit;
+      font-size: 12px;
+      text-transform: none;
+      letter-spacing: normal;
+      cursor: pointer;
+    }
+    .theme-picker button:hover {
+      background: #1a1a1a;
+      border-color: #555;
+    }
+    textarea {
+      width: 100%;
+      min-height: 360px;
+      box-sizing: border-box;
+      background: #111;
+      color: #cfe;
+      border: 1px solid #333;
+      border-radius: 3px;
+      padding: 10px;
+      font-family: "JetBrains Mono", "Menlo", monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+    .render-area {
+      min-height: 200px;
+    }
+    .demo-narrow {
+      max-width: 520px;
+      margin-top: 16px;
+    }
+    .demo-narrow h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+      margin: 0 0 6px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bitlayout viewer</h1>
+  <div class="layout">
+    <section class="panel">
+      <h2>JSON input</h2>
+      <textarea id="json-input" spellcheck="false"></textarea>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Rendered</h2>
+        <div class="theme-picker">
+          <label>
+            Backend
+            <select id="backend-select">
+              <option value="dom">DOM</option>
+              <option value="svg">SVG</option>
+            </select>
+          </label>
+          <label>
+            Style
+            <select id="style-select"></select>
+          </label>
+          <button type="button" id="save-svg" hidden>Save SVG</button>
+        </div>
+      </div>
+      <div id="error-banner"></div>
+      <div id="output" class="bitlayout-host render-area"></div>
+
+      <div class="demo-narrow">
+        <h3>Same view in a narrower 520px container (scrolls)</h3>
+        <div id="output-narrow" class="bitlayout-host render-area"></div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import { renderBitlayout } from "./bitlayout.js";
+    import { renderBitlayoutSVG } from "./bitlayout_svg.js";
+
+    const sample = {
+      name: "AddShiftedRegister",
+      total: 32,
+      members: [
+        { kind: "named",     name: "sf",       size: 1, msb: 31, lsb: 31 },
+        { kind: "immediate", value: "0001011", size: 7, msb: 30, lsb: 24 },
+        { kind: "named",     name: "shift",    size: 2, msb: 23, lsb: 22 },
+        { kind: "immediate", value: "0",       size: 1, msb: 21, lsb: 21 },
+        { kind: "named",     name: "Rm",       size: 5, msb: 20, lsb: 16 },
+        { kind: "named",     name: "imm6",     size: 6, msb: 15, lsb: 10 },
+        { kind: "named",     name: "Rn",       size: 5, msb:  9, lsb:  5 },
+        { kind: "named",     name: "Rd",       size: 5, msb:  4, lsb:  0 }
+      ]
+    };
+
+    const input = document.getElementById("json-input");
+    const output = document.getElementById("output");
+    const outputNarrow = document.getElementById("output-narrow");
+    const errorBanner = document.getElementById("error-banner");
+    const backendSelect = document.getElementById("backend-select");
+    const styleSelect = document.getElementById("style-select");
+    const saveBtn = document.getElementById("save-svg");
+
+    const STYLE_OPTIONS = {
+      dom: [
+        { value: "blueprint", label: "Blueprint" },
+        { value: "amber-crt", label: "Amber CRT" },
+        { value: "solarized", label: "Solarized Light" },
+        { value: "cyberpunk", label: "Cyberpunk" },
+      ],
+      svg: [
+        { value: "clean",     label: "Clean" },
+        { value: "xkcd",      label: "XKCD" },
+        { value: "whimsical", label: "Whimsical" },
+        { value: "crayon",    label: "Crayon" },
+      ],
+    };
+
+    function populateStyles(backend, preferred) {
+      const opts = STYLE_OPTIONS[backend];
+      styleSelect.innerHTML = "";
+      for (const o of opts) {
+        const el = document.createElement("option");
+        el.value = o.value;
+        el.textContent = o.label;
+        styleSelect.appendChild(el);
+      }
+      if (preferred && opts.some(o => o.value === preferred)) {
+        styleSelect.value = preferred;
+      } else {
+        styleSelect.value = opts[0].value;
+      }
+    }
+    populateStyles("dom");
+
+    input.value = JSON.stringify(sample, null, 2);
+
+    function showError(msg) {
+      errorBanner.innerHTML = "";
+      const div = document.createElement("div");
+      div.className = "bl-error";
+      div.textContent = msg;
+      errorBanner.appendChild(div);
+    }
+
+    function rerender() {
+      let parsed;
+      try {
+        parsed = JSON.parse(input.value);
+      } catch (e) {
+        showError("JSON parse error: " + e.message);
+        return;
+      }
+      const backend = backendSelect.value;
+      const style = styleSelect.value;
+      try {
+        if (backend === "dom") {
+          output.dataset.theme = style;
+          outputNarrow.dataset.theme = style;
+          renderBitlayout(parsed, output);
+          renderBitlayout(parsed, outputNarrow);
+        } else {
+          delete output.dataset.theme;
+          delete outputNarrow.dataset.theme;
+          renderBitlayoutSVG(parsed, output, { style });
+          renderBitlayoutSVG(parsed, outputNarrow, { style });
+        }
+        saveBtn.hidden = backend !== "svg";
+        lastSpec = parsed;
+        errorBanner.innerHTML = "";
+      } catch (e) {
+        showError("Validation error: " + e.message);
+      }
+    }
+
+    let lastSpec = null;
+
+    function saveSvg() {
+      const svg = output.querySelector("svg");
+      if (!svg) return;
+      const clone = svg.cloneNode(true);
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+      const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        new XMLSerializer().serializeToString(clone);
+      const blob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const safe = (lastSpec && lastSpec.name ? lastSpec.name : "bitlayout")
+        .replace(/[^a-zA-Z0-9_-]+/g, "_");
+      a.href = url;
+      a.download = `${safe}-${styleSelect.value}.svg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    saveBtn.addEventListener("click", saveSvg);
+
+    backendSelect.addEventListener("change", () => {
+      populateStyles(backendSelect.value);
+      rerender();
+    });
+    styleSelect.addEventListener("change", rerender);
+
+    let timer = null;
+    input.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(rerender, 200);
+    });
+
+    rerender();
+  </script>
+</body>
+</html>

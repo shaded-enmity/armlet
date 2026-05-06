@@ -1,0 +1,11 @@
+bits(2) Xs()
+  return 'xx';
+
+a = '11';
+b = '00';
+
+c = [a, Xs(), b];
+
+xx = c[3]:c<2>;
+
+print(c, xx);

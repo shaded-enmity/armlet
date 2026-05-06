@@ -1,0 +1,39 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
+  "grammars": [
+    {
+      "name": "armlet",
+      "camelcase": "Armlet",
+      "title": "Armlet",
+      "scope": "source.armlet",
+      "file-types": [
+        "armlet"
+      ],
+      "injection-regex": "^armlet$",
+      "class-name": "TreeSitterArmlet"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "ARM pseudocode parser",
+    "authors": [
+      {
+        "name": "Pavel Odvody",
+        "email": "pavel@redhat.com"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/tree-sitter/tree-sitter-armlet"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": true,
+    "node": true,
+    "python": true,
+    "rust": true,
+    "swift": true,
+    "zig": false
+  }
+}

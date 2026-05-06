@@ -1,0 +1,207 @@
+.bitlayout-host,
+.bitlayout-host[data-theme="blueprint"] {
+  --bl-bg: #0e1a2b;
+  --bl-grid: #14253b;
+  --bl-stroke: #4a8aa8;
+  --bl-stroke-strong: #7fc8d8;
+  --bl-text: #b9d8e6;
+  --bl-named: #6fe0ff;
+  --bl-immediate: #e8d27a;
+  --bl-index: #5e8aa6;
+  --bl-name: #a4f0ff;
+
+  background: var(--bl-bg);
+  color: var(--bl-text);
+  font-family: "JetBrains Mono", "Fira Code", "Menlo", "Consolas", monospace;
+  font-size: 13px;
+  padding: 16px;
+  border: 1px solid var(--bl-stroke);
+  border-radius: 4px;
+  overflow-x: auto;
+  background-image:
+    linear-gradient(var(--bl-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bl-grid) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bitlayout-host[data-theme="amber-crt"] {
+  --bl-bg: #1a0d00;
+  --bl-grid: #2a1a04;
+  --bl-stroke: #8a5a14;
+  --bl-stroke-strong: #ffb347;
+  --bl-text: #ffcc88;
+  --bl-named: #ffd966;
+  --bl-immediate: #b3e886;
+  --bl-index: #aa7733;
+  --bl-name: #ffe7a0;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 179, 71, 0.04) 0 1px,
+      transparent 1px 3px
+    );
+  background-size: auto;
+  text-shadow: 0 0 4px rgba(255, 179, 71, 0.35);
+}
+
+.bitlayout-host[data-theme="solarized"] {
+  --bl-bg: #fdf6e3;
+  --bl-grid: #eee8d5;
+  --bl-stroke: #93a1a1;
+  --bl-stroke-strong: #586e75;
+  --bl-text: #586e75;
+  --bl-named: #268bd2;
+  --bl-immediate: #cb4b16;
+  --bl-index: #93a1a1;
+  --bl-name: #073642;
+  background-image:
+    linear-gradient(var(--bl-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bl-grid) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bitlayout-host[data-theme="cyberpunk"] {
+  --bl-bg: #120024;
+  --bl-grid: #1f0440;
+  --bl-stroke: #7a2dd0;
+  --bl-stroke-strong: #ff2bd6;
+  --bl-text: #e7c8ff;
+  --bl-named: #00f5ff;
+  --bl-immediate: #ff2bd6;
+  --bl-index: #9b6bd6;
+  --bl-name: #5af0ff;
+  background-image:
+    linear-gradient(rgba(255, 43, 214, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 255, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+  box-shadow: 0 0 16px rgba(255, 43, 214, 0.18) inset;
+}
+
+.bitlayout-host[data-theme="cyberpunk"] .bitlayout {
+  box-shadow:
+    0 0 0 1px rgba(255, 43, 214, 0.25) inset,
+    0 0 12px rgba(0, 245, 255, 0.18);
+}
+
+.bitlayout-host[data-theme="cyberpunk"] .bitlayout__cell--named {
+  text-shadow: 0 0 6px rgba(0, 245, 255, 0.55);
+}
+
+.bitlayout-host[data-theme="cyberpunk"] .bitlayout__cell--immediate {
+  text-shadow: 0 0 6px rgba(255, 43, 214, 0.55);
+}
+
+.bitlayout {
+  display: grid;
+  grid-template-columns: repeat(var(--total-bits), minmax(20px, 1fr));
+  grid-auto-rows: auto;
+  min-width: calc(var(--total-bits) * 20px);
+  border-collapse: collapse;
+  background: var(--bl-bg);
+  border: 1px solid var(--bl-stroke-strong);
+  box-shadow: 0 0 0 1px rgba(127, 200, 216, 0.15) inset;
+}
+
+.bitlayout__title {
+  grid-column: 1 / -1;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--bl-stroke);
+  color: var(--bl-name);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.bitlayout__title strong {
+  color: var(--bl-stroke-strong);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.bitlayout__cell {
+  grid-column: span var(--size);
+  border-right: 1px solid var(--bl-stroke);
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.bitlayout__cell:last-child {
+  border-right: none;
+}
+
+.bitlayout__row--index .bitlayout__cell {
+  color: var(--bl-index);
+  font-size: 11px;
+  border-bottom: 1px solid var(--bl-stroke-strong);
+  background: rgba(74, 138, 168, 0.07);
+  justify-content: space-between;
+}
+
+.bitlayout__row--index .bitlayout__cell.is-single {
+  justify-content: center;
+}
+
+.bitlayout__row--values {
+  border-top: 1px solid var(--bl-stroke-strong);
+}
+
+.bitlayout__row--values .bitlayout__cell {
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--bl-stroke);
+  padding: 6px 4px;
+}
+
+.bitlayout__cell--named {
+  color: var(--bl-name);
+  font-weight: 600;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 6px,
+      rgba(111, 224, 255, 0.04) 6px 7px
+    );
+}
+
+.bitlayout__cell--immediate {
+  color: var(--bl-immediate);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  justify-content: space-around;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.bitlayout__bit {
+  flex: 1 0 0;
+  text-align: center;
+  min-width: 0;
+}
+
+.bitlayout__index-msb,
+.bitlayout__index-lsb {
+  font-variant-numeric: tabular-nums;
+}
+
+/* error / page chrome (only used by bitlayout.html, harmless when embedded) */
+
+.bl-error {
+  background: #2a1414;
+  color: #ffb0b0;
+  border: 1px solid #c25555;
+  padding: 8px 12px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 12px;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+}

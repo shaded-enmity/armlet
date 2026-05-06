@@ -1,0 +1,12 @@
+import "stdlib/numeric";
+
+constant integer x = 5;
+constant integer y = -5;
+
+X = x<63:0>;
+Y = y<127:0>;
+
+Yy = SInt(Y);
+Xx = UInt(X);
+
+inspect(x, X, y, Y, Yy, Xx);

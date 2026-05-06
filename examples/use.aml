@@ -1,0 +1,7 @@
+import "utils.aml";
+
+use Utils;
+
+r = Repeat('011xx110', 4);
+
+print(r, SecretPattern);

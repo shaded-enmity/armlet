@@ -1,0 +1,23 @@
+bitlayout AddShiftedRegister is (
+  sf : 1,
+  '0001011',
+  shift : 2,
+  '0',
+  Rm : 5,
+  imm6 : 6,
+  Rn : 5,
+  Rd : 5,
+);
+
+bitlayout SubImmediate is (
+  sf : 1,
+  '10100010',
+  sh : 1,
+  imm12 : 12,
+  Rn : 5,
+  Rd : 5,
+);
+
+print("--- stdout ---");
+export_bitlayouts_json();
+export_bitlayouts_json("/tmp/all_layouts.json");
