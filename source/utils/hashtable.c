@@ -157,7 +157,7 @@ int bitvector_mask_bits(BitVector *vector, size_t start, uint64_t *bits,
   return 0;
 }
 
-// TODO: This is ARM64 specific
+#if defined(__aarch64__)
 uint64_t popcnt64_fast(uint64_t *p, size_t len) {
   unsigned long long *d = (unsigned long long *)p;
   unsigned int masked = 0, i = 0;
@@ -185,6 +185,39 @@ uint64_t popcnt64_fast(uint64_t *p, size_t len) {
 
   return c;
 }
+#elif defined(__x86_64__) || defined(__amd64__)
+uint64_t popcnt64_fast(uint64_t *p, size_t len) {
+  size_t i;
+  uint64_t cnt[4] = {0}, c, mask;
+
+  c = 0;
+  mask = len & ~3;
+
+  /* 4x unrolled loop */
+  for (i = 0; i < mask; i += 4)
+    __asm__("popcnt %4, %4  \n\t"
+            "add %4, %0     \n\t"
+            "popcnt %5, %5  \n\t"
+            "add %5, %1     \n\t"
+            "popcnt %6, %6  \n\t"
+            "add %6, %2     \n\t"
+            "popcnt %7, %7  \n\t"
+            "add %7, %3     \n\t"
+            : "+r"(cnt[0]), "+r"(cnt[1]), "+r"(cnt[2]), "+r"(cnt[3])
+            : "r"(p[i]), "r"(p[i + 1]), "r"(p[i + 2]), "r"(p[i + 3]));
+
+  /* add the remaining items (max 3) */
+  for (i = 0; i < (len & 3); ++i)
+    __asm__("popcnt %1, %1  \n\t"
+            "add %1, %0     \n\t"
+            : "+r"(c)
+            : "r"(p[mask + i]));
+
+  return cnt[0] + cnt[1] + cnt[2] + cnt[3] + c;
+}
+#else
+  #error "Unsupported architecture"
+#endif
 
 int bitvector_count_bits(BitVector *vector, size_t max, size_t *out_count) {
   size_t offset, shift, count;
