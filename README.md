@@ -70,7 +70,7 @@ constant integer shift_amount = UInt(imm6);
 
 The fixed bits `'0001011'` and `'0'` are matched at decode time; the named
 fields (`sf`, `shift`, `Rm`, ...) become bound variables. See
-[`tests/bitlayout.aml`](tests/bitlayout.aml) for the full worked example.
+[`examples/bitlayout.aml`](examples/bitlayout.aml) for the full worked example.
 
 ## Getting started
 
@@ -79,7 +79,7 @@ integers), ncurses (for the TUI debugger), and pkg-config.
 
 ```sh
 make armlet
-./armlet tests/bitlayout.aml
+./armlet examples/bitlayout.aml
 ```
 
 The Makefile auto-globs `source/**/*.c`; new source files are picked up

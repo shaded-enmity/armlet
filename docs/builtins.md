@@ -21,7 +21,7 @@ strings, `bits(N)`, named-bit values, etc.
 ```
 print(neg, flt, im, large, large_int, vv, xx, fdiv, idiv);
 ```
-Source: `tests/math.aml:17`.
+Source: `examples/math.aml:17`.
 
 
 String literals allow for string interpolation using `{name}` syntax.
@@ -29,7 +29,7 @@ String literals allow for string interpolation using `{name}` syntax.
 ```
 print("this is a [{test}] of \"{string}\" \\ interpolation = {F.X}");
 ```
-Source: `tests/interp.aml:6`
+Source: `examples/interp.aml:6`
 
 ### inspect(args...) &rarr; void
 *`source/interpreter.c:2906` (`armlet_vm_builtin__inspect`)*
@@ -41,7 +41,7 @@ when `print`'s rendering is too compact for debugging.
 ```
 inspect(R);
 ```
-Source: `tests/bitlayout.aml:49`.
+Source: `examples/bitlayout.aml:49`.
 
 ### backtrace() &rarr; void
 *`source/interpreter.c:3072` (`armlet_vm_builtin__backtrace`)*
@@ -72,7 +72,7 @@ its named fields bound as locals.
 ```
 dispatch(0x8b438084);
 ```
-Source: `tests/bitlayout_handler.aml:48`. See [`bitlayouts.md`](bitlayouts.md)
+Source: `examples/bitlayout_handler.aml:48`. See [`bitlayouts.md`](bitlayouts.md)
 for the full semantic picture.
 
 ### set_bits_range_name(target, name, end[, start]) &rarr; void
@@ -98,7 +98,7 @@ set_bits_range_name(MYBITS, "SP", 2, 3);
 set_bits_range_name(MYBITS, "xD", 4, 6);
 set_bits_range_name(MYBITS, "LL", 11);
 ```
-Source: `tests/namedbits.aml:5-8`.
+Source: `examples/namedbits.aml:5-8`.
 
 ## Serialization
 
@@ -118,7 +118,7 @@ Reads back a value previously written with `serialize` (file opened with
 serialize("value.bin", z);
 b = deserialize("value.bin");
 ```
-Source: `tests/serde.aml:12-13`.
+Source: `examples/serde.aml:12-13`.
 
 ## Implementation-defined value capture
 
@@ -151,7 +151,7 @@ implementation_defined("Magic Bitstring V1", b);
 implementation_defined("Less Magic Bistring V2", c);
 end_implementation_defined();
 ```
-Source: `tests/implementation_definition.aml:5-9`.
+Source: `examples/implementation_definition.aml:5-9`.
 
 ## Numeric / type conversion
 
@@ -164,7 +164,7 @@ returned unchanged. Other types are an error.
 ```
 f_cast_985 = (Real(n_ten) * f_pi) ^ 2;
 ```
-Source: `tests/binops.aml:29`.
+Source: `examples/binops.aml:29`.
 
 ### RoundUp(x: real) &rarr; integer
 *`source/interpreter.c:3011` (`armlet_vm_builtin__round_up`)*

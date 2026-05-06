@@ -41,7 +41,7 @@ Backtrace:
  frame(1:0x...): ValidateEncoding
  frame(0:0x...): <top>
 
-tests/example.aml:15:3:28: ERROR: Assertion Failed
+examples/example.aml:15:3:28: ERROR: Assertion Failed
 15 |   assert width IN {8, 16, 32, 64};
    |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
 ```
@@ -87,7 +87,7 @@ Execution halts with:
 Backtrace:
  frame(0:0x...): <top>
 
-tests/traps.aml:3:18:32: ERROR: Execution trapped: unpredictable
+examples/traps.aml:3:18:32: ERROR: Execution trapped: unpredictable
 3 | if foo == 1 then UNPREDICTABLE;
   |                  ^~~~~~~~~~~~^
 ```
@@ -340,7 +340,6 @@ This is primarily useful for debugging the interpreter itself, not user code.
 | `UNPREDICTABLE` | Architecture-level unpredictable behaviour | No -- terminates |
 | `UNDEFINED` | Undefined instruction | No -- terminates |
 | `SEE` | Cross-reference to another encoding | No -- terminates |
-| `EndOfDecode(...)` | Structured decode result dispatch | Depends on reason |
 | `backtrace()` | Print call stack | Yes -- informational only |
 | `print(...)` | Print values | Yes -- informational only |
 | `inspect(...)` | Detailed value dump | Yes -- informational only |

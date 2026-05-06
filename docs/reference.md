@@ -1,7 +1,6 @@
 # Armlet Language Reference
 
 This document is a comprehensive reference for the Armlet programming language.
-For a gentler introduction, see [tutorial.md](tutorial.md).
 
 ---
 
@@ -783,7 +782,7 @@ constant integer offset = SInt(imm26) * 4;
 
 Bitlayouts can be dynamically dispatched using the `dispatch` built in function.
 For such purposes there is the `bitlayout NAME is (...) then do [NAME] BLOCK`
-syntax. For more information see the [bitlayout documentation](bitlayout.md).
+syntax. For more information see the [bitlayout documentation](bitlayouts.md).
 
 ---
 
